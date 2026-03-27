@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, Signal } from '@angular/core';
 import { DataService } from './data.service';
 import { StorageService } from './storage.service';
-import { Loan } from '../models';
+import { Loan, PaymentFrequency } from '../models';
 import { PaymentService } from './payment.service';
 
 @Injectable({
@@ -119,6 +119,78 @@ export class LoanCalculator {
     }
     const total = this.calculateTotalWithInterest(amount, interest);
     return total / months;
+  }
+
+  static getPaymentsPerFrequency(frequency: PaymentFrequency): number {
+    switch (frequency) {
+      case 'daily':
+        return 30;
+      case 'biweekly':
+        return 2;
+      case 'monthly':
+      default:
+        return 1;
+    }
+  }
+
+  static getFrequencyLabel(frequency: PaymentFrequency): string {
+    switch (frequency) {
+      case 'daily':
+        return 'Diario';
+      case 'biweekly':
+        return 'Quincenal';
+      case 'monthly':
+      default:
+        return 'Mensual';
+    }
+  }
+
+  static calculatePaymentByFrequency(
+    amount: number,
+    interest: number,
+    frequency: PaymentFrequency,
+    termMonths: number = 1,
+  ): number {
+    const total = this.calculateTotalWithInterest(amount, interest);
+    if (!interest || interest === 0) {
+      return total / (termMonths * this.getPaymentsPerFrequency(frequency));
+    }
+    const paymentsPerMonth = this.getPaymentsPerFrequency(frequency);
+    const totalPayments = termMonths * paymentsPerMonth;
+    return total / totalPayments;
+  }
+
+  static calculateNextPaymentDate(
+    loanDate: string,
+    frequency: PaymentFrequency,
+    paymentsCount: number,
+  ): string {
+    const date = new Date(loanDate);
+    switch (frequency) {
+      case 'daily':
+        date.setDate(date.getDate() + paymentsCount);
+        break;
+      case 'biweekly':
+        date.setDate(date.getDate() + paymentsCount * 15);
+        break;
+      case 'monthly':
+      default:
+        date.setMonth(date.getMonth() + paymentsCount);
+        break;
+    }
+    return date.toISOString().split('T')[0];
+  }
+
+  static calculateAutoInterest(amount: number, frequency: PaymentFrequency): number {
+    switch (frequency) {
+      case 'daily':
+        return 3;
+      case 'biweekly':
+        return 10;
+      case 'monthly':
+      default:
+        return 5;
+    }
   }
 
   static getSummary(loans: Loan[], payments: { loanId: string; amount: number }[]) {

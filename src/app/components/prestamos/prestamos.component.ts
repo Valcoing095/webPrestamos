@@ -106,14 +106,18 @@ import { Loan } from '../../models';
                 />
               </div>
               <div class="form-group">
-                <label for="loan-due-date">Fecha de Vencimiento</label>
-                <input
-                  type="date"
-                  id="loan-due-date"
-                  [(ngModel)]="formData.dueDate"
-                  name="dueDate"
+                <label for="loan-frequency">Frecuencia de Pago *</label>
+                <select
+                  id="loan-frequency"
+                  [(ngModel)]="formData.paymentFrequency"
+                  name="paymentFrequency"
                   class="form-control"
-                />
+                  required
+                >
+                  <option value="monthly">Mensual</option>
+                  <option value="biweekly">Quincenal</option>
+                  <option value="daily">Diario</option>
+                </select>
               </div>
             </div>
             <div class="form-row">
@@ -131,20 +135,43 @@ import { Loan } from '../../models';
                 />
               </div>
               <div class="form-group">
-                <label for="loan-interest">Tasa de Interés (% mensual)</label>
-                <input
-                  type="number"
-                  id="loan-interest"
-                  [(ngModel)]="formData.interest"
-                  name="interest"
-                  class="form-control"
-                  placeholder="Ej: 10"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                />
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="formData.autoCalculateInterest"
+                    name="autoCalculateInterest"
+                  />
+                  Calcular interés automáticamente
+                </label>
               </div>
             </div>
+            @if (!formData.autoCalculateInterest) {
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="loan-interest"
+                    >Tasa de Interés (%
+                    {{
+                      formData.paymentFrequency === 'daily'
+                        ? 'diario'
+                        : formData.paymentFrequency === 'biweekly'
+                          ? 'quincenal'
+                          : 'mensual'
+                    }})</label
+                  >
+                  <input
+                    type="number"
+                    id="loan-interest"
+                    [(ngModel)]="formData.interest"
+                    name="interest"
+                    class="form-control"
+                    placeholder="Ej: 10"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                </div>
+              </div>
+            }
             <div class="form-group full">
               <label for="loan-notes">Notas del Préstamo</label>
               <input
@@ -166,7 +193,7 @@ import { Loan } from '../../models';
                     <span class="calc-value">{{ formatCurrency(preview().principal) }}</span>
                   </div>
                   <div class="calc-item">
-                    <span class="calc-label">Interés Total</span>
+                    <span class="calc-label">Interés ({{ preview().interestRate }}%)</span>
                     <span class="calc-value">{{ formatCurrency(preview().interest) }}</span>
                   </div>
                   <div class="calc-item highlight">
@@ -175,8 +202,8 @@ import { Loan } from '../../models';
                   </div>
                   @if (formData.term > 0) {
                     <div class="calc-item highlight-green">
-                      <span class="calc-label">Pago Mensual</span>
-                      <span class="calc-value">{{ formatCurrency(preview().monthly) }}</span>
+                      <span class="calc-label">Pago {{ getFrequencyLabel() }}</span>
+                      <span class="calc-value">{{ formatCurrency(preview().payment) }}</span>
                     </div>
                   }
                 </div>
@@ -230,10 +257,15 @@ import { Loan } from '../../models';
                 </div>
                 <div class="loan-details">
                   <span>📅 {{ formatDate(loan.date) }}</span>
-                  @if (loan.dueDate) {
-                    <span>⏰ {{ formatDate(loan.dueDate) }}</span>
-                  }
+                  <span>📆 {{ getFrequencyLabel(loan.paymentFrequency) }}</span>
                   <span>📈 {{ loan.interest }}%</span>
+                </div>
+                <div class="loan-next-payment">
+                  <span class="next-payment-label">Próximo Pago:</span>
+                  <span class="next-payment-value">{{
+                    formatCurrency(getNextPaymentAmount(loan))
+                  }}</span>
+                  <span class="next-payment-date">{{ formatDate(getNextPaymentDate(loan)) }}</span>
                 </div>
                 <div class="loan-progress">
                   <div class="progress-info">
@@ -705,7 +737,43 @@ import { Loan } from '../../models';
         gap: 1rem;
         font-size: 0.875rem;
         color: #666;
+        margin-bottom: 0.5rem;
+      }
+      .loan-next-payment {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
         margin-bottom: 1rem;
+        padding: 0.5rem;
+        background: #fef3c7;
+        border-radius: 0.5rem;
+      }
+      .next-payment-label {
+        font-weight: 500;
+        color: #92400e;
+      }
+      .next-payment-value {
+        font-weight: 700;
+        color: #b45309;
+      }
+      .next-payment-date {
+        color: #78716c;
+        margin-left: auto;
+      }
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 500;
+        color: #333;
+        padding-top: 2rem;
+        cursor: pointer;
+      }
+      .checkbox-label input {
+        width: 1.25rem;
+        height: 1.25rem;
+        cursor: pointer;
       }
       .loan-progress {
         margin-bottom: 1rem;
@@ -905,7 +973,8 @@ export class PrestamosComponent implements OnInit {
     personId: '',
     amount: 0,
     date: new Date().toISOString().split('T')[0],
-    dueDate: '',
+    paymentFrequency: 'monthly' as 'daily' | 'monthly' | 'biweekly',
+    autoCalculateInterest: true,
     term: 0,
     interest: 0,
     notes: '',
@@ -975,14 +1044,22 @@ export class PrestamosComponent implements OnInit {
 
   preview = computed(() => {
     const amount = this.formData.amount || 0;
-    const interest = this.formData.interest || 0;
+    let interestRate = this.formData.interest || 0;
     const term = this.formData.term || 0;
+    const frequency = this.formData.paymentFrequency;
 
-    const total = LoanCalculator.calculateTotalWithInterest(amount, interest);
+    if (this.formData.autoCalculateInterest) {
+      interestRate = LoanCalculator.calculateAutoInterest(amount, frequency);
+    }
+
+    const total = LoanCalculator.calculateTotalWithInterest(amount, interestRate);
     const interestAmount = total - amount;
-    const monthly = term > 0 ? LoanCalculator.calculateMonthlyPayment(amount, interest, term) : 0;
+    const payment =
+      term > 0
+        ? LoanCalculator.calculatePaymentByFrequency(amount, interestRate, frequency, term)
+        : 0;
 
-    return { principal: amount, interest: interestAmount, total, monthly };
+    return { principal: amount, interest: interestAmount, total, payment, interestRate };
   });
 
   selectedLoanBalance = computed(() => {
@@ -1042,13 +1119,57 @@ export class PrestamosComponent implements OnInit {
     return LoanCalculator.formatDate(dateStr);
   }
 
+  getFrequencyLabel(frequency?: 'daily' | 'monthly' | 'biweekly'): string {
+    return LoanCalculator.getFrequencyLabel(frequency || 'monthly');
+  }
+
+  getNextPaymentAmount(loan: Loan): number {
+    const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
+    const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    const remaining = total - totalPaid;
+    if (remaining <= 0) return 0;
+
+    const payment = LoanCalculator.calculatePaymentByFrequency(
+      loan.amount,
+      loan.interest,
+      loan.paymentFrequency,
+      1,
+    );
+    return Math.min(payment, remaining);
+  }
+
+  getNextPaymentDate(loan: Loan): string {
+    const payments = this.paymentService.getByLoanId(loan.id);
+    const paymentsCount = payments.length;
+
+    if (paymentsCount === 0) {
+      return LoanCalculator.calculateNextPaymentDate(loan.date, loan.paymentFrequency, 1);
+    }
+
+    return LoanCalculator.calculateNextPaymentDate(
+      loan.date,
+      loan.paymentFrequency,
+      paymentsCount + 1,
+    );
+  }
+
   onSubmit(): void {
     try {
       const userId = this.authService.getUserId();
       if (!userId) return;
 
+      const interest = this.formData.autoCalculateInterest
+        ? LoanCalculator.calculateAutoInterest(this.formData.amount, this.formData.paymentFrequency)
+        : this.formData.interest;
+
       this.loanService.create({
-        ...this.formData,
+        personId: this.formData.personId,
+        amount: this.formData.amount,
+        date: this.formData.date,
+        paymentFrequency: this.formData.paymentFrequency,
+        autoCalculateInterest: this.formData.autoCalculateInterest,
+        interest: interest,
+        notes: this.formData.notes,
         userId,
         trackingNotes: [],
       });
@@ -1058,7 +1179,8 @@ export class PrestamosComponent implements OnInit {
         personId: '',
         amount: 0,
         date: new Date().toISOString().split('T')[0],
-        dueDate: '',
+        paymentFrequency: 'monthly',
+        autoCalculateInterest: true,
         term: 0,
         interest: 0,
         notes: '',
@@ -1070,8 +1192,9 @@ export class PrestamosComponent implements OnInit {
 
   openPaymentModal(loan: Loan): void {
     this.selectedLoan.set(loan);
+    const suggestedAmount = this.getNextPaymentAmount(loan);
     this.paymentData = {
-      amount: this.selectedLoanBalance(),
+      amount: suggestedAmount,
       date: new Date().toISOString().split('T')[0],
       notes: '',
     };

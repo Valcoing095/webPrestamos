@@ -1,3 +1,5 @@
+export type PaymentFrequency = 'daily' | 'monthly' | 'biweekly';
+
 import { BaseModel } from './base.model';
 
 export class Loan extends BaseModel {
@@ -5,7 +7,8 @@ export class Loan extends BaseModel {
   userId: string | null;
   amount: number;
   date: string;
-  dueDate: string;
+  paymentFrequency: PaymentFrequency;
+  autoCalculateInterest: boolean;
   interest: number;
   notes: string;
   trackingNotes: Array<{ id: string; text: string; createdAt: string }>;
@@ -16,7 +19,8 @@ export class Loan extends BaseModel {
     this.userId = data.userId || null;
     this.amount = data.amount || 0;
     this.date = data.date || new Date().toISOString().split('T')[0];
-    this.dueDate = data.dueDate || '';
+    this.paymentFrequency = data.paymentFrequency || 'monthly';
+    this.autoCalculateInterest = data.autoCalculateInterest ?? true;
     this.interest = data.interest || 0;
     this.notes = data.notes || '';
     this.trackingNotes = data.trackingNotes || [];
@@ -38,36 +42,31 @@ export class Loan extends BaseModel {
     if (data.personId !== undefined) this.personId = data.personId;
     if (data.amount !== undefined) this.amount = data.amount;
     if (data.date !== undefined) this.date = data.date;
-    if (data.dueDate !== undefined) this.dueDate = data.dueDate;
+    if (data.paymentFrequency !== undefined) this.paymentFrequency = data.paymentFrequency;
+    if (data.autoCalculateInterest !== undefined)
+      this.autoCalculateInterest = data.autoCalculateInterest;
     if (data.interest !== undefined) this.interest = data.interest;
     if (data.notes !== undefined) this.notes = data.notes;
     if (data.trackingNotes !== undefined) this.trackingNotes = data.trackingNotes;
   }
 
   isOverdue(): boolean {
-    if (!this.dueDate) return false;
-    const today = new Date();
-    const due = new Date(this.dueDate);
-    return today > due;
+    return false;
   }
 
   getDaysOverdue(): number {
-    if (!this.dueDate) return 0;
-    const today = new Date();
-    const due = new Date(this.dueDate);
-    const diff = today.getTime() - due.getTime();
-    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+    return 0;
   }
 
   addTrackingNote(text: string): void {
     this.trackingNotes.push({
       id: Date.now().toString(36) + Math.random().toString(36).substr(2),
       text,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     });
   }
 
   removeTrackingNote(noteId: string): void {
-    this.trackingNotes = this.trackingNotes.filter(n => n.id !== noteId);
+    this.trackingNotes = this.trackingNotes.filter((n) => n.id !== noteId);
   }
 }
