@@ -1,10 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, computed, Signal } from '@angular/core';
 import { DataService } from './data.service';
 import { StorageService } from './storage.service';
 import { Person } from '../models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PersonService extends DataService<Person> {
   constructor(storageService: StorageService) {
@@ -36,12 +36,19 @@ export class PersonService extends DataService<Person> {
   }
 
   getByUserId(userId: string): Person[] {
-    return this.filter(p => p.userId === userId);
+    return this.filter((p) => p.userId === userId);
+  }
+
+  getPersonsSignal(userId: string): Signal<Person[]> {
+    return computed(() => {
+      const allPersons = this.getDataSignal()();
+      return allPersons.filter((p) => p.userId === userId);
+    });
   }
 
   findByName(userId: string, name: string): Person[] {
-    return this.getByUserId(userId).filter(p =>
-      p.name.toLowerCase().includes(name.toLowerCase())
+    return this.getByUserId(userId).filter((p) =>
+      p.name.toLowerCase().includes(name.toLowerCase()),
     );
   }
 

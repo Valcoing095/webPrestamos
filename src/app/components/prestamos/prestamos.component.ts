@@ -931,14 +931,16 @@ export class PrestamosComponent implements OnInit {
     this.loanService.setPaymentService(this.paymentService);
   }
 
+  private userId = computed(() => this.authService.getUserId());
+
   persons = computed(() => {
-    const userId = this.authService.getUserId();
-    return userId ? this.personService.getByUserId(userId) : [];
+    const uid = this.userId();
+    return uid ? this.personService.getPersonsSignal(uid)() : [];
   });
 
   loans = computed(() => {
-    const userId = this.authService.getUserId();
-    return userId ? this.loanService.getByUserId(userId) : [];
+    const uid = this.userId();
+    return uid ? this.loanService.getLoansSignal(uid)() : [];
   });
 
   filteredLoans = computed(() => {

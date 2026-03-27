@@ -2,7 +2,13 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { AuthService, PersonService, LoanService, PaymentService, LoanCalculator } from '../../services';
+import {
+  AuthService,
+  PersonService,
+  LoanService,
+  PaymentService,
+  LoanCalculator,
+} from '../../services';
 
 @Component({
   selector: 'app-pagos',
@@ -41,26 +47,60 @@ import { AuthService, PersonService, LoanService, PaymentService, LoanCalculator
             <div class="form-row">
               <div class="form-group">
                 <label for="payment-loan">Préstamo *</label>
-                <select id="payment-loan" [(ngModel)]="formData.loanId" name="loanId" class="form-control" required (change)="updatePreview()">
+                <select
+                  id="payment-loan"
+                  [(ngModel)]="formData.loanId"
+                  name="loanId"
+                  class="form-control"
+                  required
+                  (change)="updatePreview()"
+                >
                   <option value="">Seleccionar préstamo...</option>
                   @for (loan of activeLoans(); track loan.id) {
-                    <option [value]="loan.id">{{ getPersonName(loan.personId) }} - {{ formatCurrency(getTotalAmount(loan)) }}</option>
+                    <option [value]="loan.id">
+                      {{ getPersonName(loan.personId) }} -
+                      {{ formatCurrency(getTotalAmount(loan)) }}
+                    </option>
                   }
                 </select>
               </div>
               <div class="form-group">
                 <label for="payment-amount">Monto del Pago *</label>
-                <input type="number" id="payment-amount" [(ngModel)]="formData.amount" name="amount" class="form-control" placeholder="$0.00" min="0.01" step="0.01" required>
+                <input
+                  type="number"
+                  id="payment-amount"
+                  [(ngModel)]="formData.amount"
+                  name="amount"
+                  class="form-control"
+                  placeholder="$0.00"
+                  min="0.01"
+                  step="0.01"
+                  required
+                />
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="payment-date">Fecha del Pago *</label>
-                <input type="date" id="payment-date" [(ngModel)]="formData.date" name="date" class="form-control" required>
+                <input
+                  type="date"
+                  id="payment-date"
+                  [(ngModel)]="formData.date"
+                  name="date"
+                  class="form-control"
+                  required
+                />
               </div>
               <div class="form-group">
                 <label for="payment-notes">Notas</label>
-                <input type="text" id="payment-notes" [(ngModel)]="formData.notes" name="notes" class="form-control" placeholder="Opcional">
+                <input
+                  type="text"
+                  id="payment-notes"
+                  [(ngModel)]="formData.notes"
+                  name="notes"
+                  class="form-control"
+                  placeholder="Opcional"
+                />
               </div>
             </div>
 
@@ -72,15 +112,21 @@ import { AuthService, PersonService, LoanService, PaymentService, LoanCalculator
                 </div>
                 <div class="preview-row">
                   <span class="preview-label">Total del Préstamo:</span>
-                  <span class="preview-value">{{ formatCurrency(getTotalAmount(previewLoan()!)) }}</span>
+                  <span class="preview-value">{{
+                    formatCurrency(getTotalAmount(previewLoan()!))
+                  }}</span>
                 </div>
                 <div class="preview-row">
                   <span class="preview-label">Ya Pagado:</span>
-                  <span class="preview-value green">{{ formatCurrency(getPaidAmount(previewLoan()!)) }}</span>
+                  <span class="preview-value green">{{
+                    formatCurrency(getPaidAmount(previewLoan()!))
+                  }}</span>
                 </div>
                 <div class="preview-row highlight">
                   <span class="preview-label">Saldo Pendiente:</span>
-                  <span class="preview-value">{{ formatCurrency(getBalance(previewLoan()!)) }}</span>
+                  <span class="preview-value">{{
+                    formatCurrency(getBalance(previewLoan()!))
+                  }}</span>
                 </div>
               </div>
             }
@@ -131,228 +177,302 @@ import { AuthService, PersonService, LoanService, PaymentService, LoanCalculator
       </div>
     }
   `,
-  styles: [`
-    .navbar {
-      background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      padding: 1rem 0;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-    }
-    .nav-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .nav-brand {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      text-decoration: none;
-    }
-    .nav-links {
-      display: flex;
-      gap: 1.5rem;
-    }
-    .nav-link {
-      color: #666;
-      text-decoration: none;
-      font-weight: 500;
-      padding: 0.5rem 0;
-      border-bottom: 2px solid transparent;
-      transition: all 0.3s;
-    }
-    .nav-link:hover, .nav-link.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
-    }
-    .nav-user { display: flex; align-items: center; gap: 1rem; }
-    .nav-username { font-weight: 500; color: #333; }
-    .nav-btn-logout {
-      background: #f3f4f6;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-weight: 500;
-      color: #666;
-    }
-    .nav-hamburger { display: none; }
-    .main-content {
-      margin-top: 80px;
-      padding: 2rem 1.5rem;
-      background: #f5f7fa;
-      min-height: calc(100vh - 80px);
-    }
-    .container { max-width: 1200px; margin: 0 auto; }
-    .page-header { margin-bottom: 2rem; }
-    .page-header h1 { font-size: 2rem; color: #1a1a2e; margin: 0 0 0.5rem 0; }
-    .subtitle { color: #666; margin: 0; }
-    .form-section, .card-section {
-      background: white;
-      border-radius: 1rem;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    }
-    .form-section h2, .card-section h2 {
-      font-size: 1.25rem;
-      color: #1a1a2e;
-      margin: 0 0 1.5rem 0;
-    }
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: #333;
-    }
-    .form-control {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border: 2px solid #e1e1e1;
-      border-radius: 0.5rem;
-      font-size: 1rem;
-    }
-    .form-control:focus { outline: none; border-color: #667eea; }
-    .btn {
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 0.5rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-    }
-    .payment-preview {
-      background: #f5f7fa;
-      border-radius: 0.75rem;
-      padding: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-    .preview-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .preview-row:last-child { border-bottom: none; }
-    .preview-row.highlight {
-      background: #eef2ff;
-      margin: 0.5rem -1.25rem -1.25rem;
-      padding: 1rem 1.25rem;
-      border-radius: 0 0 0.75rem 0.75rem;
-      border-bottom: none;
-    }
-    .preview-label { color: #666; }
-    .preview-value { font-weight: 600; color: #1a1a2e; }
-    .preview-value.green { color: #22c55e; }
-    .payments-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .payment-group {
-      background: #f9fafb;
-      border-radius: 0.75rem;
-      padding: 1rem;
-      border: 1px solid #e5e7eb;
-    }
-    .payment-group-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .group-person {
-      font-weight: 600;
-      color: #1a1a2e;
-    }
-    .group-total {
-      font-size: 0.875rem;
-      color: #22c55e;
-      font-weight: 600;
-    }
-    .payment-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem;
-      background: white;
-      border-radius: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    .payment-info {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    .payment-date { font-weight: 500; color: #1a1a2e; }
-    .payment-notes { font-size: 0.75rem; color: #666; }
-    .payment-amount {
-      font-weight: 600;
-      color: #22c55e;
-    }
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
-      color: #666;
-    }
-    .empty-icon { font-size: 4rem; display: block; margin-bottom: 1rem; }
-    .empty-hint { color: #999; font-size: 0.875rem; }
-    .toast {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      background: white;
-      padding: 1rem 1.5rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      z-index: 300;
-      animation: slideIn 0.3s ease-out;
-    }
-    .toast-success { border-left: 4px solid #22c55e; }
-    .toast-error { border-left: 4px solid #dc2626; }
-    .toast-close { background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #666; }
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    @media (max-width: 768px) {
-      .nav-links, .nav-hamburger { display: none; }
-      .form-row { grid-template-columns: 1fr; }
-    }
-  `]
+  styles: [
+    `
+      .navbar {
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 1rem 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+      }
+      .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav-brand {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        text-decoration: none;
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+      }
+      .nav-link {
+        color: #666;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 0;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s;
+      }
+      .nav-link:hover,
+      .nav-link.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+      }
+      .nav-user {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .nav-username {
+        font-weight: 500;
+        color: #333;
+      }
+      .nav-btn-logout {
+        background: #f3f4f6;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-weight: 500;
+        color: #666;
+      }
+      .nav-hamburger {
+        display: none;
+      }
+      .main-content {
+        margin-top: 80px;
+        padding: 2rem 1.5rem;
+        background: #f5f7fa;
+        min-height: calc(100vh - 80px);
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .page-header {
+        margin-bottom: 2rem;
+      }
+      .page-header h1 {
+        font-size: 2rem;
+        color: #1a1a2e;
+        margin: 0 0 0.5rem 0;
+      }
+      .subtitle {
+        color: #666;
+        margin: 0;
+      }
+      .form-section,
+      .card-section {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      }
+      .form-section h2,
+      .card-section h2 {
+        font-size: 1.25rem;
+        color: #1a1a2e;
+        margin: 0 0 1.5rem 0;
+      }
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+      }
+      .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e1e1e1;
+        border-radius: 0.5rem;
+        font-size: 1rem;
+      }
+      .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+      .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
+      .payment-preview {
+        background: #f5f7fa;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+      }
+      .preview-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .preview-row:last-child {
+        border-bottom: none;
+      }
+      .preview-row.highlight {
+        background: #eef2ff;
+        margin: 0.5rem -1.25rem -1.25rem;
+        padding: 1rem 1.25rem;
+        border-radius: 0 0 0.75rem 0.75rem;
+        border-bottom: none;
+      }
+      .preview-label {
+        color: #666;
+      }
+      .preview-value {
+        font-weight: 600;
+        color: #1a1a2e;
+      }
+      .preview-value.green {
+        color: #22c55e;
+      }
+      .payments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .payment-group {
+        background: #f9fafb;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+      }
+      .payment-group-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .group-person {
+        font-weight: 600;
+        color: #1a1a2e;
+      }
+      .group-total {
+        font-size: 0.875rem;
+        color: #22c55e;
+        font-weight: 600;
+      }
+      .payment-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background: white;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+      .payment-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .payment-date {
+        font-weight: 500;
+        color: #1a1a2e;
+      }
+      .payment-notes {
+        font-size: 0.75rem;
+        color: #666;
+      }
+      .payment-amount {
+        font-weight: 600;
+        color: #22c55e;
+      }
+      .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+      }
+      .empty-icon {
+        font-size: 4rem;
+        display: block;
+        margin-bottom: 1rem;
+      }
+      .empty-hint {
+        color: #999;
+        font-size: 0.875rem;
+      }
+      .toast {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        z-index: 300;
+        animation: slideIn 0.3s ease-out;
+      }
+      .toast-success {
+        border-left: 4px solid #22c55e;
+      }
+      .toast-error {
+        border-left: 4px solid #dc2626;
+      }
+      .toast-close {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+        color: #666;
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @media (max-width: 768px) {
+        .nav-links,
+        .nav-hamburger {
+          display: none;
+        }
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    `,
+  ],
 })
 export class PagosComponent implements OnInit {
   formData = {
     loanId: '',
     amount: 0,
     date: new Date().toISOString().split('T')[0],
-    notes: ''
+    notes: '',
   };
 
   toast = signal<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -361,21 +481,23 @@ export class PagosComponent implements OnInit {
     public authService: AuthService,
     private personService: PersonService,
     private loanService: LoanService,
-    private paymentService: PaymentService
+    private paymentService: PaymentService,
   ) {}
 
   ngOnInit(): void {
     this.loanService.setPaymentService(this.paymentService);
   }
 
+  private userId = computed(() => this.authService.getUserId());
+
   activeLoans = computed(() => {
-    const userId = this.authService.getUserId();
-    return userId ? this.loanService.getActiveLoans(userId) : [];
+    const uid = this.userId();
+    return uid ? this.loanService.getActiveLoansSignal(uid, this.paymentService)() : [];
   });
 
   payments = computed(() => {
-    const userId = this.authService.getUserId();
-    return userId ? this.paymentService.getByUserId(userId) : [];
+    const uid = this.userId();
+    return uid ? this.paymentService.getPaymentsSignal(uid)() : [];
   });
 
   previewLoan = computed(() => {
@@ -385,11 +507,14 @@ export class PagosComponent implements OnInit {
 
   groupedPayments = computed(() => {
     const payments = this.payments();
-    const groups: Map<string, { loanId: string; personId: string; payments: any[]; totalPaid: number }> = new Map();
+    const groups: Map<
+      string,
+      { loanId: string; personId: string; payments: any[]; totalPaid: number }
+    > = new Map();
 
     payments
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .forEach(payment => {
+      .forEach((payment) => {
         const loan = this.loanService.getById(payment.loanId);
         if (!loan) return;
 
@@ -398,7 +523,7 @@ export class PagosComponent implements OnInit {
             loanId: payment.loanId,
             personId: loan.personId,
             payments: [],
-            totalPaid: 0
+            totalPaid: 0,
           });
         }
 
@@ -450,7 +575,7 @@ export class PagosComponent implements OnInit {
 
       this.paymentService.create({
         ...this.formData,
-        userId
+        userId,
       });
 
       this.showToast('Pago registrado', 'success');
@@ -458,7 +583,7 @@ export class PagosComponent implements OnInit {
         loanId: '',
         amount: 0,
         date: new Date().toISOString().split('T')[0],
-        notes: ''
+        notes: '',
       };
     } catch (error: any) {
       this.showToast(error.message, 'error');

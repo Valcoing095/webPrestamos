@@ -1,11 +1,11 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed, Signal } from '@angular/core';
 import { DataService } from './data.service';
 import { StorageService } from './storage.service';
 import { Loan } from '../models';
 import { PaymentService } from './payment.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LoanService extends DataService<Loan> {
   private paymentServiceSignal = signal<PaymentService | null>(null);
@@ -47,25 +47,42 @@ export class LoanService extends DataService<Loan> {
   }
 
   getByUserId(userId: string): Loan[] {
-    return this.filter(l => l.userId === userId);
+    return this.filter((l) => l.userId === userId);
+  }
+
+  getLoansSignal(userId: string): Signal<Loan[]> {
+    return computed(() => {
+      const allLoans = this.getDataSignal()();
+      return allLoans.filter((l) => l.userId === userId);
+    });
   }
 
   getByPersonId(personId: string): Loan[] {
-    return this.filter(l => l.personId === personId);
+    return this.filter((l) => l.personId === personId);
   }
 
   getActiveLoans(userId: string): Loan[] {
     const paymentService = this.getPaymentService();
-    return this.getByUserId(userId).filter(loan => {
+    return this.getByUserId(userId).filter((loan) => {
       const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
       const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
       return totalPaid < total;
     });
   }
 
+  getActiveLoansSignal(userId: string, paymentService: PaymentService): Signal<Loan[]> {
+    return computed(() => {
+      return this.getByUserId(userId).filter((loan) => {
+        const totalPaid = paymentService.getTotalPaidForLoan(loan.id);
+        const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+        return totalPaid < total;
+      });
+    });
+  }
+
   getCompletedLoans(userId: string): Loan[] {
     const paymentService = this.getPaymentService();
-    return this.getByUserId(userId).filter(loan => {
+    return this.getByUserId(userId).filter((loan) => {
       const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
       const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
       return totalPaid >= total;
@@ -73,7 +90,7 @@ export class LoanService extends DataService<Loan> {
   }
 
   getOverdueLoans(userId: string): Loan[] {
-    return this.getByUserId(userId).filter(loan => {
+    return this.getByUserId(userId).filter((loan) => {
       const l = new Loan(loan);
       return l.isOverdue();
     });
@@ -93,7 +110,7 @@ export class LoanCalculator {
     if (!interest || interest === 0) {
       return amount;
     }
-    return amount + (amount * interest / 100);
+    return amount + (amount * interest) / 100;
   }
 
   static calculateMonthlyPayment(amount: number, interest: number, months: number): number {
@@ -110,11 +127,11 @@ export class LoanCalculator {
     const totalPending = totalLoaned - totalCollected;
 
     const paidByLoan = new Map<string, number>();
-    payments.forEach(p => {
+    payments.forEach((p) => {
       paidByLoan.set(p.loanId, (paidByLoan.get(p.loanId) || 0) + p.amount);
     });
 
-    const activeCount = loans.filter(loan => {
+    const activeCount = loans.filter((loan) => {
       const totalPaid = paidByLoan.get(loan.id) || 0;
       const total = this.calculateTotalWithInterest(loan.amount, loan.interest);
       return totalPaid < total;
@@ -126,7 +143,7 @@ export class LoanCalculator {
   static formatCurrency(amount: number): string {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: 'MXN'
+      currency: 'MXN',
     }).format(amount);
   }
 

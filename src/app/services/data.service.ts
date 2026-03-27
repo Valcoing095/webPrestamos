@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { Signal, signal } from '@angular/core';
 import { StorageService } from './storage.service';
 
 export class DataService<T extends { id: string }> {
@@ -22,6 +22,10 @@ export class DataService<T extends { id: string }> {
     this.dataSignal.set(items);
   }
 
+  getDataSignal(): Signal<T[]> {
+    return this.dataSignal;
+  }
+
   getAll(): T[] {
     return this.dataSignal();
   }
@@ -35,12 +39,12 @@ export class DataService<T extends { id: string }> {
 
   getById(id: string): T | null {
     const items = this.getAll();
-    return items.find(item => item.id === id) || null;
+    return items.find((item) => item.id === id) || null;
   }
 
   update(id: string, data: Partial<T>): T | null {
     const items = this.getAll();
-    const index = items.findIndex(item => item.id === id);
+    const index = items.findIndex((item) => item.id === id);
 
     if (index === -1) return null;
 
@@ -51,11 +55,11 @@ export class DataService<T extends { id: string }> {
 
   delete(id: string): boolean {
     const items = this.getAll();
-    const item = items.find(i => i.id === id);
+    const item = items.find((i) => i.id === id);
 
     if (!item) return false;
 
-    const filtered = items.filter(i => i.id !== id);
+    const filtered = items.filter((i) => i.id !== id);
     this.saveAll(filtered);
     return true;
   }

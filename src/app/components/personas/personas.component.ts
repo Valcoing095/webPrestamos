@@ -704,9 +704,11 @@ export class PersonasComponent implements OnInit {
     this.loanService.setPaymentService(this.paymentService);
   }
 
+  private userId = computed(() => this.authService.getUserId());
+
   persons = computed(() => {
-    const userId = this.authService.getUserId();
-    return userId ? this.personService.getByUserId(userId) : [];
+    const uid = this.userId();
+    return uid ? this.personService.getPersonsSignal(uid)() : [];
   });
 
   getActiveLoansCount(personId: string): number {
