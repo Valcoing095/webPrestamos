@@ -540,7 +540,7 @@ export class PagosComponent implements OnInit {
   }
 
   getTotalAmount(loan: any): number {
-    return LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    return loan.totalToCollect || LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
   }
 
   getPaidAmount(loan: any): number {

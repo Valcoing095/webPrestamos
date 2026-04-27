@@ -1,4 +1,4 @@
-export type PaymentFrequency = 'daily' | 'monthly' | 'biweekly';
+export type PaymentFrequency = 'daily' | 'monthly' | 'biweekly' | 'weekly';
 
 import { BaseModel } from './base.model';
 
@@ -8,8 +8,7 @@ export class Loan extends BaseModel {
   amount: number;
   date: string;
   paymentFrequency: PaymentFrequency;
-  autoCalculateInterest: boolean;
-  interest: number;
+  totalToCollect: number;
   notes: string;
   trackingNotes: Array<{ id: string; text: string; createdAt: string }>;
 
@@ -20,8 +19,7 @@ export class Loan extends BaseModel {
     this.amount = data.amount || 0;
     this.date = data.date || new Date().toISOString().split('T')[0];
     this.paymentFrequency = data.paymentFrequency || 'monthly';
-    this.autoCalculateInterest = data.autoCalculateInterest ?? true;
-    this.interest = data.interest || 0;
+    this.totalToCollect = data.totalToCollect || 0;
     this.notes = data.notes || '';
     this.trackingNotes = data.trackingNotes || [];
   }
@@ -31,6 +29,8 @@ export class Loan extends BaseModel {
     if (!this.personId) errors.push('La persona es requerida');
     if (!this.amount || this.amount <= 0) errors.push('El monto debe ser mayor a 0');
     if (!this.date) errors.push('La fecha es requerida');
+    if (!this.totalToCollect || this.totalToCollect <= 0) errors.push('El total a cobrar es requerido');
+    if (this.totalToCollect <= this.amount) errors.push('El total a cobrar debe ser mayor al monto prestado');
     return errors;
   }
 
@@ -43,9 +43,7 @@ export class Loan extends BaseModel {
     if (data.amount !== undefined) this.amount = data.amount;
     if (data.date !== undefined) this.date = data.date;
     if (data.paymentFrequency !== undefined) this.paymentFrequency = data.paymentFrequency;
-    if (data.autoCalculateInterest !== undefined)
-      this.autoCalculateInterest = data.autoCalculateInterest;
-    if (data.interest !== undefined) this.interest = data.interest;
+    if (data.totalToCollect !== undefined) this.totalToCollect = data.totalToCollect;
     if (data.notes !== undefined) this.notes = data.notes;
     if (data.trackingNotes !== undefined) this.trackingNotes = data.trackingNotes;
   }

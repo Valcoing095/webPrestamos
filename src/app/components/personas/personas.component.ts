@@ -243,7 +243,7 @@ import { Person } from '../../models';
                 </div>
                 <div class="loan-details">
                   <span>Fecha: {{ formatDate(loan.date) }}</span>
-                  <span>Interés: {{ loan.interest }}%</span>
+                  <span>Total a cobrar: {{ formatCurrency(loan.totalToCollect) }}</span>
                 </div>
                 <div class="loan-progress">
                   <div class="progress-info">
@@ -715,7 +715,7 @@ export class PersonasComponent implements OnInit {
     const loans = this.loanService.getByPersonId(personId);
     return loans.filter((loan) => {
       const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-      const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+      const total = loan.totalToCollect || loan.amount;
       return totalPaid < total;
     }).length;
   }
@@ -747,7 +747,7 @@ export class PersonasComponent implements OnInit {
 
   isLoanCompleted(loan: any): boolean {
     const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-    const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    const total = loan.totalToCollect || LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
     return totalPaid >= total;
   }
 
@@ -767,7 +767,7 @@ export class PersonasComponent implements OnInit {
   }
 
   getTotalAmount(loan: any): number {
-    return LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    return loan.totalToCollect || LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
   }
 
   getProgressPercent(loan: any): number {

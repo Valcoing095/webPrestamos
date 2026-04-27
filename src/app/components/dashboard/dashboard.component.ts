@@ -450,13 +450,13 @@ export class DashboardComponent implements OnInit {
 
   isLoanCompleted(loan: any): boolean {
     const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-    const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    const total = loan.totalToCollect || LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
     return totalPaid >= total;
   }
 
   getLoanBalance(loan: any): number {
     const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-    const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    const total = loan.totalToCollect || LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
     return Math.max(0, total - totalPaid);
   }
 

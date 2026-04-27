@@ -65,7 +65,7 @@ export class LoanService extends DataService<Loan> {
     const paymentService = this.getPaymentService();
     return this.getByUserId(userId).filter((loan) => {
       const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
-      const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+      const total = loan.totalToCollect || loan.amount;
       return totalPaid < total;
     });
   }
@@ -74,7 +74,7 @@ export class LoanService extends DataService<Loan> {
     return computed(() => {
       return this.getByUserId(userId).filter((loan) => {
         const totalPaid = paymentService.getTotalPaidForLoan(loan.id);
-        const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+        const total = loan.totalToCollect || loan.amount;
         return totalPaid < total;
       });
     });
@@ -84,7 +84,7 @@ export class LoanService extends DataService<Loan> {
     const paymentService = this.getPaymentService();
     return this.getByUserId(userId).filter((loan) => {
       const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
-      const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+      const total = loan.totalToCollect || loan.amount;
       return totalPaid >= total;
     });
   }
@@ -106,7 +106,10 @@ export class LoanService extends DataService<Loan> {
 }
 
 export class LoanCalculator {
-  static calculateTotalWithInterest(amount: number, interest: number): number {
+  static calculateTotalWithInterest(amount: number, interest: number, totalToCollect?: number): number {
+    if (totalToCollect && totalToCollect > 0) {
+      return totalToCollect;
+    }
     if (!interest || interest === 0) {
       return amount;
     }
@@ -125,6 +128,8 @@ export class LoanCalculator {
     switch (frequency) {
       case 'daily':
         return 30;
+      case 'weekly':
+        return 4;
       case 'biweekly':
         return 2;
       case 'monthly':
@@ -137,6 +142,8 @@ export class LoanCalculator {
     switch (frequency) {
       case 'daily':
         return 'Diario';
+      case 'weekly':
+        return 'Semanal';
       case 'biweekly':
         return 'Quincenal';
       case 'monthly':
@@ -170,6 +177,9 @@ export class LoanCalculator {
       case 'daily':
         date.setDate(date.getDate() + paymentsCount);
         break;
+      case 'weekly':
+        date.setDate(date.getDate() + paymentsCount * 7);
+        break;
       case 'biweekly':
         date.setDate(date.getDate() + paymentsCount * 15);
         break;
@@ -195,8 +205,9 @@ export class LoanCalculator {
 
   static getSummary(loans: Loan[], payments: { loanId: string; amount: number }[]) {
     const totalLoaned = loans.reduce((sum, l) => sum + l.amount, 0);
+    const totalToCollect = loans.reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0);
     const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
-    const totalPending = totalLoaned - totalCollected;
+    const totalPending = totalToCollect - totalCollected;
 
     const paidByLoan = new Map<string, number>();
     payments.forEach((p) => {
@@ -205,7 +216,7 @@ export class LoanCalculator {
 
     const activeCount = loans.filter((loan) => {
       const totalPaid = paidByLoan.get(loan.id) || 0;
-      const total = this.calculateTotalWithInterest(loan.amount, loan.interest);
+      const total = loan.totalToCollect || loan.amount;
       return totalPaid < total;
     }).length;
 

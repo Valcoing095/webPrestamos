@@ -9,7 +9,7 @@ import {
   PaymentService,
   LoanCalculator,
 } from '../../services';
-import { Loan } from '../../models';
+import { Loan, PaymentFrequency } from '../../models';
 
 @Component({
   selector: 'app-prestamos',
@@ -116,6 +116,7 @@ import { Loan } from '../../models';
                 >
                   <option value="monthly">Mensual</option>
                   <option value="biweekly">Quincenal</option>
+                  <option value="weekly">Semanal</option>
                   <option value="daily">Diario</option>
                 </select>
               </div>
@@ -135,43 +136,20 @@ import { Loan } from '../../models';
                 />
               </div>
               <div class="form-group">
-                <label class="checkbox-label">
-                  <input
-                    type="checkbox"
-                    [(ngModel)]="formData.autoCalculateInterest"
-                    name="autoCalculateInterest"
-                  />
-                  Calcular interés automáticamente
-                </label>
+                <label for="loan-total">Total a Cobrar *</label>
+                <input
+                  type="number"
+                  id="loan-total"
+                  [(ngModel)]="formData.totalToCollect"
+                  name="totalToCollect"
+                  class="form-control"
+                  placeholder="$0.00"
+                  min="1"
+                  step="0.01"
+                  required
+                />
               </div>
             </div>
-            @if (!formData.autoCalculateInterest) {
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="loan-interest"
-                    >Tasa de Interés (%
-                    {{
-                      formData.paymentFrequency === 'daily'
-                        ? 'diario'
-                        : formData.paymentFrequency === 'biweekly'
-                          ? 'quincenal'
-                          : 'mensual'
-                    }})</label
-                  >
-                  <input
-                    type="number"
-                    id="loan-interest"
-                    [(ngModel)]="formData.interest"
-                    name="interest"
-                    class="form-control"
-                    placeholder="Ej: 10"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                  />
-                </div>
-              </div>
-            }
             <div class="form-group full">
               <label for="loan-notes">Notas del Préstamo</label>
               <input
@@ -258,7 +236,7 @@ import { Loan } from '../../models';
                 <div class="loan-details">
                   <span>📅 {{ formatDate(loan.date) }}</span>
                   <span>📆 {{ getFrequencyLabel(loan.paymentFrequency) }}</span>
-                  <span>📈 {{ loan.interest }}%</span>
+                  <span>💰 Total: {{ formatCurrency(loan.totalToCollect) }}</span>
                 </div>
                 <div class="loan-next-payment">
                   <span class="next-payment-label">Próximo Pago:</span>
@@ -973,10 +951,9 @@ export class PrestamosComponent implements OnInit {
     personId: '',
     amount: 0,
     date: new Date().toISOString().split('T')[0],
-    paymentFrequency: 'monthly' as 'daily' | 'monthly' | 'biweekly',
-    autoCalculateInterest: true,
+    paymentFrequency: 'monthly' as PaymentFrequency,
+    totalToCollect: 0,
     term: 0,
-    interest: 0,
     notes: '',
   };
 
@@ -1044,29 +1021,24 @@ export class PrestamosComponent implements OnInit {
 
   preview = computed(() => {
     const amount = this.formData.amount || 0;
-    let interestRate = this.formData.interest || 0;
+    const totalToCollect = this.formData.totalToCollect || 0;
     const term = this.formData.term || 0;
     const frequency = this.formData.paymentFrequency;
 
-    if (this.formData.autoCalculateInterest) {
-      interestRate = LoanCalculator.calculateAutoInterest(amount, frequency);
-    }
-
-    const total = LoanCalculator.calculateTotalWithInterest(amount, interestRate);
-    const interestAmount = total - amount;
+    const interestAmount = totalToCollect > amount ? totalToCollect - amount : 0;
     const payment =
-      term > 0
-        ? LoanCalculator.calculatePaymentByFrequency(amount, interestRate, frequency, term)
+      term > 0 && totalToCollect > 0
+        ? LoanCalculator.calculatePaymentByFrequency(amount, 0, frequency, term)
         : 0;
 
-    return { principal: amount, interest: interestAmount, total, payment, interestRate };
+    return { principal: amount, interest: interestAmount, total: totalToCollect, payment, interestRate: 0 };
   });
 
   selectedLoanBalance = computed(() => {
     const loan = this.selectedLoan();
     if (!loan) return 0;
     const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-    const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    const total = loan.totalToCollect || loan.amount;
     return Math.max(0, total - totalPaid);
   });
 
@@ -1092,7 +1064,7 @@ export class PrestamosComponent implements OnInit {
 
   isLoanCompleted(loan: Loan): boolean {
     const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-    const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    const total = loan.totalToCollect || loan.amount;
     return totalPaid >= total;
   }
 
@@ -1101,7 +1073,7 @@ export class PrestamosComponent implements OnInit {
   }
 
   getTotalAmount(loan: Loan): number {
-    return LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    return loan.totalToCollect || loan.amount;
   }
 
   getProgressPercent(loan: Loan): number {
@@ -1119,22 +1091,23 @@ export class PrestamosComponent implements OnInit {
     return LoanCalculator.formatDate(dateStr);
   }
 
-  getFrequencyLabel(frequency?: 'daily' | 'monthly' | 'biweekly'): string {
+  getFrequencyLabel(frequency?: PaymentFrequency): string {
     return LoanCalculator.getFrequencyLabel(frequency || 'monthly');
   }
 
   getNextPaymentAmount(loan: Loan): number {
     const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-    const total = LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
+    const total = loan.totalToCollect || loan.amount;
     const remaining = total - totalPaid;
     if (remaining <= 0) return 0;
 
-    const payment = LoanCalculator.calculatePaymentByFrequency(
-      loan.amount,
-      loan.interest,
-      loan.paymentFrequency,
-      1,
-    );
+    const payment =
+      LoanCalculator.calculatePaymentByFrequency(
+        loan.totalToCollect || loan.amount,
+        0,
+        loan.paymentFrequency,
+        1,
+      );
     return Math.min(payment, remaining);
   }
 
@@ -1158,17 +1131,12 @@ export class PrestamosComponent implements OnInit {
       const userId = this.authService.getUserId();
       if (!userId) return;
 
-      const interest = this.formData.autoCalculateInterest
-        ? LoanCalculator.calculateAutoInterest(this.formData.amount, this.formData.paymentFrequency)
-        : this.formData.interest;
-
       this.loanService.create({
         personId: this.formData.personId,
         amount: this.formData.amount,
         date: this.formData.date,
         paymentFrequency: this.formData.paymentFrequency,
-        autoCalculateInterest: this.formData.autoCalculateInterest,
-        interest: interest,
+        totalToCollect: this.formData.totalToCollect,
         notes: this.formData.notes,
         userId,
         trackingNotes: [],
@@ -1180,9 +1148,8 @@ export class PrestamosComponent implements OnInit {
         amount: 0,
         date: new Date().toISOString().split('T')[0],
         paymentFrequency: 'monthly',
-        autoCalculateInterest: true,
+        totalToCollect: 0,
         term: 0,
-        interest: 0,
         notes: '',
       };
     } catch (error: any) {
