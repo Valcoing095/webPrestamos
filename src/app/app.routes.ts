@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, loginGuard } from './guards/auth.guard';
+import { authGuard, loginGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -24,19 +24,31 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
-        loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent)
+        loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
       {
         path: 'personas',
-        loadComponent: () => import('./components/personas/personas.component').then(m => m.PersonasComponent)
+        loadComponent: () => import('./features/personas/personas.component').then(m => m.PersonasComponent)
       },
       {
         path: 'prestamos',
-        loadComponent: () => import('./components/prestamos/prestamos.component').then(m => m.PrestamosComponent)
+        loadComponent: () => import('./features/prestamos/prestamos.component').then(m => m.PrestamosComponent)
       },
       {
         path: 'pagos',
-        loadComponent: () => import('./components/pagos/pagos.component').then(m => m.PagosComponent)
+        loadComponent: () => import('./features/pagos/pagos.component').then(m => m.PagosComponent)
+      },
+      {
+        path: 'prestamistas',
+        loadComponent: () => import('./features/prestamistas/prestamistas.component').then(m => m.PrestamistasComponent)
+      },
+      {
+        path: 'rutas',
+        loadComponent: () => import('./features/rutas/rutas.component').then(m => m.RutasComponent)
+      },
+      {
+        path: 'seguimiento',
+        loadComponent: () => import('./features/seguimiento/seguimiento.component').then(m => m.SeguimientoComponent)
       }
     ]
   },
