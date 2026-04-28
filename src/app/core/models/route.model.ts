@@ -5,6 +5,7 @@ export class Route extends BaseModel {
   description: string;
   zone: string;
   userId: string | null;
+  lenderId: string | null; // Prestamista asignado a esta ruta
   isActive: boolean;
 
   constructor(data: Partial<Route> = {}) {
@@ -13,6 +14,7 @@ export class Route extends BaseModel {
     this.description = data.description || '';
     this.zone = data.zone || '';
     this.userId = data.userId || null;
+    this.lenderId = data.lenderId || null;
     this.isActive = data.isActive !== undefined ? data.isActive : true;
   }
 
@@ -35,6 +37,11 @@ export class Route extends BaseModel {
     if (data.name !== undefined) this.name = data.name;
     if (data.description !== undefined) this.description = data.description;
     if (data.zone !== undefined) this.zone = data.zone;
+    if (data.lenderId !== undefined) this.lenderId = data.lenderId;
     if (data.isActive !== undefined) this.isActive = data.isActive;
+  }
+
+  assignLender(lenderId: string | null): void {
+    this.lenderId = lenderId;
   }
 }

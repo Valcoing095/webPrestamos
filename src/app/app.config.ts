@@ -11,7 +11,8 @@ import {
   featherMap,
   featherTrendingUp,
   featherLogOut,
-  featherSettings
+  featherSettings,
+  featherFileText
 } from '@ng-icons/feather-icons';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
@@ -32,7 +33,8 @@ export const appConfig: ApplicationConfig = {
       featherMap,
       featherTrendingUp,
       featherLogOut,
-      featherSettings
+      featherSettings,
+      featherFileText
     })
   ]
 };

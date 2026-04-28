@@ -5,26 +5,38 @@
     <div class="p-3 border-bottom border-secondary">
       <h4 class="text-white mb-0">Prestamos App</h4>
     </div>
+    
     <ul class="nav flex-column py-2">
+      <!-- Dashboard -->
       <li class="nav-item">
         <a class="nav-link text-white" routerLink="/dashboard" routerLinkActive="active" (click)="closeIfMobile()">
           <ng-icon name="featherHome" class="me-2"></ng-icon><span>Dashboard</span>
         </a>
       </li>
+      
+      <!-- Seccion: Gestion Propia -->
+      <li class="nav-section">
+        <span class="nav-section-title">Gestion Propia</span>
+      </li>
       <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/prestamos" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherDollarSign" class="me-2"></ng-icon><span>Prestamos</span>
+        <a class="nav-link text-white" routerLink="/mis-prestamos" routerLinkActive="active" (click)="closeIfMobile()">
+          <ng-icon name="featherDollarSign" class="me-2"></ng-icon><span>Mis Prestamos</span>
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/pagos" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherCreditCard" class="me-2"></ng-icon><span>Pagos</span>
+        <a class="nav-link text-white" routerLink="/mis-pagos" routerLinkActive="active" (click)="closeIfMobile()">
+          <ng-icon name="featherCreditCard" class="me-2"></ng-icon><span>Mis Pagos</span>
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/personas" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherUsers" class="me-2"></ng-icon><span>Personas (Clientes)</span>
+        <a class="nav-link text-white" routerLink="/clientes" routerLinkActive="active" (click)="closeIfMobile()">
+          <ng-icon name="featherUsers" class="me-2"></ng-icon><span>Clientes</span>
         </a>
+      </li>
+      
+      <!-- Seccion: Prestamistas y Rutas -->
+      <li class="nav-section">
+        <span class="nav-section-title">Prestamistas y Rutas</span>
       </li>
       <li class="nav-item">
         <a class="nav-link text-white" routerLink="/prestamistas" routerLinkActive="active" (click)="closeIfMobile()">
@@ -35,6 +47,21 @@
         <a class="nav-link text-white" routerLink="/rutas" routerLinkActive="active" (click)="closeIfMobile()">
           <ng-icon name="featherMap" class="me-2"></ng-icon><span>Rutas</span>
         </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white" routerLink="/prestamos-prestamistas" routerLinkActive="active" (click)="closeIfMobile()">
+          <ng-icon name="featherDollarSign" class="me-2"></ng-icon><span>Prestamos por Ruta</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link text-white" routerLink="/liquidacion" routerLinkActive="active" (click)="closeIfMobile()">
+          <ng-icon name="featherFileText" class="me-2"></ng-icon><span>Liquidacion</span>
+        </a>
+      </li>
+      
+      <!-- Seccion: Seguimiento -->
+      <li class="nav-section">
+        <span class="nav-section-title">Reportes</span>
       </li>
       <li class="nav-item">
         <a class="nav-link text-white" routerLink="/seguimiento" routerLinkActive="active" (click)="closeIfMobile()">

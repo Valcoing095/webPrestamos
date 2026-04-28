@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, Signal } from '@angular/core';
 import { DataService } from './data.service';
 import { StorageService } from './storage.service';
-import { Loan, PaymentFrequency } from '../models';
+import { Loan, PaymentFrequency, LoanType } from '../models';
 import { PaymentService } from './payment.service';
 
 @Injectable({
@@ -63,6 +63,54 @@ export class LoanService extends DataService<Loan> {
 
   getByLenderId(lenderId: string): Loan[] {
     return this.filter((l) => l.lenderId === lenderId);
+  }
+
+  getByRouteId(routeId: string): Loan[] {
+    return this.filter((l) => l.routeId === routeId);
+  }
+
+  // Prestamos de gestion propia (sin prestamista asignado)
+  getOwnLoans(userId: string): Loan[] {
+    return this.filter((l) => l.userId === userId && (l.loanType === 'own' || !l.lenderId));
+  }
+
+  getOwnLoansSignal(userId: string): Signal<Loan[]> {
+    return computed(() => {
+      const allLoans = this.getDataSignal()();
+      return allLoans.filter((l) => l.userId === userId && (l.loanType === 'own' || !l.lenderId));
+    });
+  }
+
+  // Prestamos gestionados por prestamistas
+  getLenderLoans(userId: string): Loan[] {
+    return this.filter((l) => l.userId === userId && l.loanType === 'lender' && l.lenderId);
+  }
+
+  getLenderLoansSignal(userId: string): Signal<Loan[]> {
+    return computed(() => {
+      const allLoans = this.getDataSignal()();
+      return allLoans.filter((l) => l.userId === userId && l.loanType === 'lender' && l.lenderId);
+    });
+  }
+
+  // Prestamos activos de gestion propia
+  getActiveOwnLoans(userId: string): Loan[] {
+    const paymentService = this.getPaymentService();
+    return this.getOwnLoans(userId).filter((loan) => {
+      const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
+      const total = loan.totalToCollect || loan.amount;
+      return totalPaid < total;
+    });
+  }
+
+  // Prestamos activos por prestamista
+  getActiveLoansByLender(lenderId: string): Loan[] {
+    const paymentService = this.getPaymentService();
+    return this.getByLenderId(lenderId).filter((loan) => {
+      const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
+      const total = loan.totalToCollect || loan.amount;
+      return totalPaid < total;
+    });
   }
 
   getActiveLoans(userId: string): Loan[] {

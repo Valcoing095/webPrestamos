@@ -6,8 +6,10 @@ export class Lender extends BaseModel {
   email: string;
   availableCapital: number;
   userId: string | null;
-  routeIds: string[];
+  routeId: string | null; // Ruta asignada al prestamista
+  commissionPercentage: number; // Porcentaje de comision para liquidacion
   notes: string;
+  isActive: boolean;
 
   constructor(data: Partial<Lender> = {}) {
     super(data);
@@ -16,8 +18,10 @@ export class Lender extends BaseModel {
     this.email = data.email || '';
     this.availableCapital = data.availableCapital || 0;
     this.userId = data.userId || null;
-    this.routeIds = data.routeIds || [];
+    this.routeId = data.routeId || null;
+    this.commissionPercentage = data.commissionPercentage || 10;
     this.notes = data.notes || '';
+    this.isActive = data.isActive !== undefined ? data.isActive : true;
   }
 
   validate(): string[] {
@@ -31,6 +35,9 @@ export class Lender extends BaseModel {
     if (this.availableCapital < 0) {
       errors.push('El capital disponible no puede ser negativo');
     }
+    if (this.commissionPercentage < 0 || this.commissionPercentage > 100) {
+      errors.push('El porcentaje de comision debe estar entre 0 y 100');
+    }
     return errors;
   }
 
@@ -43,17 +50,13 @@ export class Lender extends BaseModel {
     if (data.phone !== undefined) this.phone = data.phone;
     if (data.email !== undefined) this.email = data.email;
     if (data.availableCapital !== undefined) this.availableCapital = data.availableCapital;
-    if (data.routeIds !== undefined) this.routeIds = data.routeIds;
+    if (data.routeId !== undefined) this.routeId = data.routeId;
+    if (data.commissionPercentage !== undefined) this.commissionPercentage = data.commissionPercentage;
     if (data.notes !== undefined) this.notes = data.notes;
+    if (data.isActive !== undefined) this.isActive = data.isActive;
   }
 
-  addRoute(routeId: string): void {
-    if (!this.routeIds.includes(routeId)) {
-      this.routeIds.push(routeId);
-    }
-  }
-
-  removeRoute(routeId: string): void {
-    this.routeIds = this.routeIds.filter(id => id !== routeId);
+  assignRoute(routeId: string | null): void {
+    this.routeId = routeId;
   }
 }

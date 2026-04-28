@@ -47,7 +47,11 @@ export class LenderService extends DataService<Lender> {
   }
 
   getByRouteId(routeId: string): Lender[] {
-    return this.filter((l) => l.routeIds.includes(routeId));
+    return this.filter((l) => l.routeId === routeId);
+  }
+
+  getActiveLenders(userId: string): Lender[] {
+    return this.getByUserId(userId).filter((l) => l.isActive);
   }
 
   findByName(userId: string, name: string): Lender[] {

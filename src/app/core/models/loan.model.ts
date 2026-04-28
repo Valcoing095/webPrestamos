@@ -1,11 +1,13 @@
 export type PaymentFrequency = 'daily' | 'monthly' | 'biweekly' | 'weekly';
 export type LoanStatus = 'active' | 'completed' | 'overdue';
+export type LoanType = 'own' | 'lender'; // 'own' = gestion propia, 'lender' = gestionado por prestamista
 
 import { BaseModel } from './base.model';
 
 export class Loan extends BaseModel {
   personId: string;
-  lenderId: string | null;
+  lenderId: string | null; // Si es null, es gestion propia
+  routeId: string | null; // Ruta asociada al prestamo
   userId: string | null;
   amount: number;
   interest: number;
@@ -15,11 +17,13 @@ export class Loan extends BaseModel {
   notes: string;
   trackingNotes: Array<{ id: string; text: string; createdAt: string }>;
   status: LoanStatus;
+  loanType: LoanType;
 
   constructor(data: Partial<Loan> = {}) {
     super(data);
     this.personId = data.personId || '';
     this.lenderId = data.lenderId || null;
+    this.routeId = data.routeId || null;
     this.userId = data.userId || null;
     this.amount = data.amount || 0;
     this.interest = data.interest || 0;
@@ -29,6 +33,7 @@ export class Loan extends BaseModel {
     this.notes = data.notes || '';
     this.trackingNotes = data.trackingNotes || [];
     this.status = data.status || 'active';
+    this.loanType = data.loanType || (data.lenderId ? 'lender' : 'own');
   }
 
   validate(): string[] {
@@ -48,6 +53,7 @@ export class Loan extends BaseModel {
   update(data: Partial<Loan>): void {
     if (data.personId !== undefined) this.personId = data.personId;
     if (data.lenderId !== undefined) this.lenderId = data.lenderId;
+    if (data.routeId !== undefined) this.routeId = data.routeId;
     if (data.amount !== undefined) this.amount = data.amount;
     if (data.interest !== undefined) this.interest = data.interest;
     if (data.date !== undefined) this.date = data.date;
@@ -56,6 +62,7 @@ export class Loan extends BaseModel {
     if (data.notes !== undefined) this.notes = data.notes;
     if (data.trackingNotes !== undefined) this.trackingNotes = data.trackingNotes;
     if (data.status !== undefined) this.status = data.status;
+    if (data.loanType !== undefined) this.loanType = data.loanType;
   }
 
   isOverdue(): boolean {
