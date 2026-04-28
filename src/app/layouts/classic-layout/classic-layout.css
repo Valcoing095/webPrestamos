@@ -1,0 +1,115 @@
+/* /src/app/layouts/classic-layout/classic-layout.css */
+
+:host {
+  display: block;
+  overflow-x: hidden;
+}
+
+.layout {
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ============================================
+   SIDEBAR
+   ============================================ */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100vh;
+  background-color: #212529;
+  color: white;
+  z-index: 1030;
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transform: translateX(0); /* Visible por defecto */
+}
+
+.sidebar .nav-link {
+  padding: 0.75rem 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+  display: block;
+}
+
+.sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.sidebar .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-left-color: #fff;
+  color: white;
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+.main {
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+  margin-left: 250px; /* Desktop: margen por defecto */
+}
+
+.main.sidebar-open {
+  margin-left: 250px;
+}
+
+/* ============================================
+   DESKTOP (>= 992px)
+   ============================================ */
+@media (min-width: 992px) {
+  .sidebar:not(.open) {
+    transform: translateX(-180px); /* Colapsado: deja 70px visible */
+  }
+  
+  .main:not(.sidebar-open) {
+    margin-left: 70px;
+  }
+}
+
+/* ============================================
+   MOBILE (< 992px)
+   ============================================ */
+@media (max-width: 991.98px) {
+  .sidebar {
+    transform: translateX(-100%); /* Oculto por defecto */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .sidebar.open {
+    transform: translateX(0); /* Mostrar overlay */
+  }
+  
+  .main {
+    margin-left: 0 !important;
+  }
+  
+  .main.sidebar-open {
+    margin-left: 0 !important;
+  }
+}
+
+/* ============================================
+   NAVBAR
+   ============================================ */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.navbar .btn-link {
+  color: #212529;
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+}
+
+.navbar .btn-link:hover {
+  color: #000;
+}

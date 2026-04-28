@@ -14,40 +14,24 @@ import { Person } from '../../models';
 @Component({
   selector: 'app-personas',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
-    <nav class="navbar">
-      <div class="nav-container">
-        <a href="#" class="nav-brand">📋 Gestor de Préstamos</a>
-        <div class="nav-links">
-          <a routerLink="/dashboard" class="nav-link">Dashboard</a>
-          <a routerLink="/personas" class="nav-link active">Personas</a>
-          <a routerLink="/prestamos" class="nav-link">Préstamos</a>
-          <a routerLink="/pagos" class="nav-link">Pagos</a>
+    <div class="container-fluid px-4 py-4">
+      <header class="mb-4">
+        <h1 class="h3 mb-1">Gestión de Personas</h1>
+        <p class="text-muted mb-0">Administra tus deudores</p>
+      </header>
+      
+      <!-- Formulario -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent">
+          <h5 class="card-title mb-0">{{ isEditing() ? 'Editar Persona' : 'Agregar Nueva Persona' }}</h5>
         </div>
-        <div class="nav-user">
-          <span class="nav-username">{{ authService.currentUser()?.name }}</span>
-          <button class="nav-btn-logout" (click)="logout()">Cerrar Sesión</button>
-        </div>
-        <button class="nav-hamburger" aria-label="Menú">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </nav>
-
-    <main class="main-content">
-      <div class="container">
-        <header class="page-header">
-          <h1>Gestión de Personas</h1>
-          <p class="subtitle">Administra a tus deudores</p>
-        </header>
-
-        <section class="form-section">
-          <h2>Agregar Nueva Persona</h2>
+        <div class="card-body">
           <form (ngSubmit)="onSubmit()">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="person-name">Nombre Completo *</label>
+            <div class="row g-3">
+              <div class="col-12 col-md-4">
+                <label for="person-name" class="form-label">Nombre Completo *</label>
                 <input
                   type="text"
                   id="person-name"
@@ -58,8 +42,8 @@ import { Person } from '../../models';
                   required
                 />
               </div>
-              <div class="form-group">
-                <label for="person-phone">Teléfono</label>
+              <div class="col-12 col-md-4">
+                <label for="person-phone" class="form-label">Teléfono</label>
                 <input
                   type="tel"
                   id="person-phone"
@@ -69,20 +53,20 @@ import { Person } from '../../models';
                   placeholder="Opcional"
                 />
               </div>
+              <div class="col-12 col-md-4">
+                <label for="person-address" class="form-label">Dirección</label>
+                <input
+                  type="text"
+                  id="person-address"
+                  [(ngModel)]="formData.address"
+                  name="address"
+                  class="form-control"
+                  placeholder="Opcional"
+                />
+              </div>
             </div>
-            <div class="form-group full">
-              <label for="person-address">Dirección</label>
-              <input
-                type="text"
-                id="person-address"
-                [(ngModel)]="formData.address"
-                name="address"
-                class="form-control"
-                placeholder="Opcional"
-              />
-            </div>
-            <div class="form-group full">
-              <label for="person-notes">Notas</label>
+            <div class="mt-3">
+              <label for="person-notes" class="form-label">Notas</label>
               <input
                 type="text"
                 id="person-notes"
@@ -92,600 +76,185 @@ import { Person } from '../../models';
                 placeholder="Notas adicionales..."
               />
             </div>
-            <button type="submit" class="btn btn-primary">Agregar Persona</button>
+            <div class="mt-3">
+              <button type="submit" class="btn btn-primary me-2">
+                {{ isEditing() ? 'Actualizar Persona' : 'Agregar Persona' }}
+              </button>
+              @if (isEditing()) {
+                <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancelar</button>
+              }
+            </div>
           </form>
-        </section>
+        </div>
+      </div>
 
-        <section class="card-section">
-          <div class="section-header">
-            <h2>Personas Registradas</h2>
-            <span class="count-badge">{{ persons().length }}</span>
-          </div>
-          <div class="persons-grid">
+      <!-- Lista de Personas -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Personas Registradas</h5>
+          <span class="badge bg-primary">{{ persons().length }}</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="row g-3 p-3">
             @for (person of persons(); track person.id) {
-              <div class="person-card">
-                <div class="person-name">{{ person.name }}</div>
-                @if (person.phone) {
-                  <div class="person-contact">📱 {{ person.phone }}</div>
-                }
-                @if (person.address) {
-                  <div class="person-contact">📍 {{ person.address }}</div>
-                }
-                @if (person.notes) {
-                  <div class="person-contact">📝 {{ person.notes }}</div>
-                }
-                <div class="person-loans">
-                  {{ getActiveLoansCount(person.id) }} préstamo(s) activo(s)
-                </div>
-                <div class="person-actions">
-                  <button class="btn btn-sm btn-info" (click)="viewLoans(person)">
-                    Ver Préstamos
-                  </button>
-                  <button class="btn btn-sm btn-outline" (click)="editPerson(person)">
-                    Editar
-                  </button>
-                  <button class="btn btn-sm btn-danger" (click)="confirmDelete(person)">
-                    Eliminar
-                  </button>
+              <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border">
+                  <div class="card-body">
+                    <h5 class="card-title">{{ person.name }}</h5>
+                    @if (person.phone) {
+                      <p class="card-text text-muted small mb-1">📱 {{ person.phone }}</p>
+                    }
+                    @if (person.address) {
+                      <p class="card-text text-muted small mb-1">📍 {{ person.address }}</p>
+                    }
+                    @if (person.notes) {
+                      <p class="card-text text-muted small mb-2">📝 {{ person.notes }}</p>
+                    }
+                    <p class="card-text">
+                      <span class="badge bg-info">{{ getActiveLoansCount(person.id) }} préstamo(s) activo(s)</span>
+                    </p>
+                  </div>
+                  <div class="card-footer bg-transparent d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" (click)="viewLoans(person)">
+                      Ver Préstamos
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" (click)="editPerson(person)">
+                      Editar
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(person)">
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
               </div>
             } @empty {
-              <div class="empty-state">
-                <span class="empty-icon">👤</span>
-                <p>No hay personas registradas.</p>
-                <p class="empty-hint">¡Agrega tu primera persona!</p>
+              <div class="text-center text-muted p-5">
+                <p class="mb-0">No hay personas registradas.</p>
+                <p class="small">¡Agrega tu primera persona!</p>
               </div>
             }
           </div>
-        </section>
+        </div>
       </div>
-    </main>
+    </div>
 
+    <!-- Modal de Edición -->
     @if (showEditModal()) {
-      <div class="modal active" (click)="closeModal($event)">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3 class="modal-title">Editar Persona</h3>
-            <button class="modal-close" (click)="closeEditModal()">×</button>
+      <div class="modal show d-block" tabindex="-1" (click)="closeModal($event)">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Editar Persona</h5>
+              <button type="button" class="btn-close" (click)="closeEditModal()"></button>
+            </div>
+            <div class="modal-body">
+              <form (ngSubmit)="saveEdit()">
+                <div class="mb-3">
+                  <label for="edit-name" class="form-label">Nombre</label>
+                  <input type="text" id="edit-name" [(ngModel)]="editData.name" name="editName" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                  <label for="edit-phone" class="form-label">Teléfono</label>
+                  <input type="tel" id="edit-phone" [(ngModel)]="editData.phone" name="editPhone" class="form-control" />
+                </div>
+                <div class="mb-3">
+                  <label for="edit-address" class="form-label">Dirección</label>
+                  <input type="text" id="edit-address" [(ngModel)]="editData.address" name="editAddress" class="form-control" />
+                </div>
+                <div class="mb-3">
+                  <label for="edit-notes" class="form-label">Notas</label>
+                  <input type="text" id="edit-notes" [(ngModel)]="editData.notes" name="editNotes" class="form-control" />
+                </div>
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                  <button type="button" class="btn btn-secondary" (click)="closeEditModal()">Cancelar</button>
+                </div>
+              </form>
+            </div>
           </div>
-          <form (ngSubmit)="saveEdit()">
-            <input type="hidden" [(ngModel)]="editData.id" name="id" />
-            <div class="form-group">
-              <label for="edit-name">Nombre *</label>
-              <input
-                type="text"
-                id="edit-name"
-                [(ngModel)]="editData.name"
-                name="name"
-                class="form-control"
-                required
-              />
+        </div>
+      </div>
+    }
+
+    <!-- Modal de Confirmación -->
+    @if (showConfirmModal()) {
+      <div class="modal show d-block" tabindex="-1" (click)="closeConfirmModal()">
+        <div class="modal-dialog modal-sm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Confirmar</h5>
+              <button type="button" class="btn-close" (click)="closeConfirmModal()"></button>
             </div>
-            <div class="form-group">
-              <label for="edit-phone">Teléfono</label>
-              <input
-                type="tel"
-                id="edit-phone"
-                [(ngModel)]="editData.phone"
-                name="phone"
-                class="form-control"
-              />
-            </div>
-            <div class="form-group">
-              <label for="edit-address">Dirección</label>
-              <input
-                type="text"
-                id="edit-address"
-                [(ngModel)]="editData.address"
-                name="address"
-                class="form-control"
-              />
-            </div>
-            <div class="form-group">
-              <label for="edit-notes">Notas</label>
-              <input
-                type="text"
-                id="edit-notes"
-                [(ngModel)]="editData.notes"
-                name="notes"
-                class="form-control"
-              />
+            <div class="modal-body">
+              <p>¿Eliminar a {{ personToDelete()?.name }}?</p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeEditModal()">
-                Cancelar
-              </button>
-              <button type="submit" class="btn btn-primary">Guardar</button>
+              <button type="button" class="btn btn-secondary" (click)="closeConfirmModal()">Cancelar</button>
+              <button type="button" class="btn btn-danger" (click)="deletePerson()">Confirmar</button>
             </div>
-          </form>
-        </div>
-      </div>
-    }
-
-    @if (showConfirmModal()) {
-      <div class="modal active" (click)="closeConfirmModal()">
-        <div class="modal-content modal-confirm">
-          <div class="modal-header">
-            <h3 class="modal-title">Confirmar</h3>
-          </div>
-          <div class="modal-body">
-            <p>¿Eliminar a {{ personToDelete()?.name }}?</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="closeConfirmModal()">
-              Cancelar
-            </button>
-            <button type="button" class="btn btn-danger" (click)="deletePerson()">Confirmar</button>
           </div>
         </div>
       </div>
     }
 
+    <!-- Modal de Préstamos -->
     @if (showLoansModal()) {
-      <div class="modal active" (click)="closeLoansModal($event)">
-        <div class="modal-content modal-large">
-          <div class="modal-header">
-            <h3 class="modal-title">Préstamos de {{ selectedPerson()?.name }}</h3>
-            <button class="modal-close" (click)="closeLoansModal()">×</button>
-          </div>
-          <div class="loans-list">
-            @for (loan of personLoans(); track loan.id) {
-              <div class="loan-item">
-                <div class="loan-header">
-                  <span class="loan-amount">{{ formatCurrency(loan.amount) }}</span>
-                  <span
-                    class="loan-status"
-                    [class.completed]="isLoanCompleted(loan)"
-                    [class.overdue]="isLoanOverdue(loan)"
-                  >
-                    {{ getLoanStatus(loan) }}
-                  </span>
-                </div>
-                <div class="loan-details">
-                  <span>Fecha: {{ formatDate(loan.date) }}</span>
-                  <span>Total a cobrar: {{ formatCurrency(loan.totalToCollect) }}</span>
-                </div>
-                <div class="loan-progress">
-                  <div class="progress-info">
-                    <span>Pagado: {{ formatCurrency(getPaidAmount(loan)) }}</span>
-                    <span>Total: {{ formatCurrency(getTotalAmount(loan)) }}</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div class="progress-fill" [style.width.%]="getProgressPercent(loan)"></div>
+      <div class="modal show d-block" tabindex="-1" (click)="closeLoansModal($event)">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Préstamos de {{ selectedPerson()?.name }}</h5>
+              <button type="button" class="btn-close" (click)="closeLoansModal()"></button>
+            </div>
+            <div class="modal-body">
+              @for (loan of personLoans(); track loan.id) {
+                <div class="card mb-2">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 class="mb-1">{{ formatCurrency(loan.amount) }}</h6>
+                        <small class="text-muted">{{ formatDate(loan.date) }} - {{ getLoanStatus(loan) }}</small>
+                      </div>
+                      <span class="badge" [class]="isLoanCompleted(loan) ? 'bg-success' : 'bg-warning'">
+                        {{ getLoanStatus(loan) }}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            } @empty {
-              <div class="empty-state">
-                <span class="empty-icon">💰</span>
-                <p>No hay préstamos registrados.</p>
-              </div>
-            }
+              } @empty {
+                <div class="text-center text-muted p-3">
+                  <p>No hay préstamos registrados.</p>
+                </div>
+              }
+            </div>
           </div>
         </div>
       </div>
     }
 
+    <!-- Toast -->
     @if (toast()) {
-      <div class="toast" [class]="'toast-' + toast()?.type">
-        <span class="toast-message">{{ toast()?.message }}</span>
-        <button class="toast-close" (click)="clearToast()">×</button>
+      <div class="toast show position-fixed bottom-0 end-0 m-3" [class]="'toast-' + toast()?.type">
+        <div class="toast-header">
+          <strong class="me-auto">{{ toast()?.type === 'success' ? 'Éxito' : 'Error' }}</strong>
+          <button type="button" class="btn-close" (click)="clearToast()"></button>
+        </div>
+        <div class="toast-body">
+          {{ toast()?.message }}
+        </div>
       </div>
     }
   `,
-  styles: [
-    `
-      .navbar {
-        background: white;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 1rem 0;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 100;
-      }
-      .nav-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .nav-brand {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1a1a2e;
-        text-decoration: none;
-      }
-      .nav-links {
-        display: flex;
-        gap: 1.5rem;
-      }
-      .nav-link {
-        color: #666;
-        text-decoration: none;
-        font-weight: 500;
-        padding: 0.5rem 0;
-        border-bottom: 2px solid transparent;
-        transition: all 0.3s;
-      }
-      .nav-link:hover,
-      .nav-link.active {
-        color: #667eea;
-        border-bottom-color: #667eea;
-      }
-      .nav-user {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-      }
-      .nav-username {
-        font-weight: 500;
-        color: #333;
-      }
-      .nav-btn-logout {
-        background: #f3f4f6;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        font-weight: 500;
-        color: #666;
-      }
-      .nav-hamburger {
-        display: none;
-      }
-      .main-content {
-        margin-top: 80px;
-        padding: 2rem 1.5rem;
-        background: #f5f7fa;
-        min-height: calc(100vh - 80px);
-      }
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-      .page-header {
-        margin-bottom: 2rem;
-      }
-      .page-header h1 {
-        font-size: 2rem;
-        color: #1a1a2e;
-        margin: 0 0 0.5rem 0;
-      }
-      .subtitle {
-        color: #666;
-        margin: 0;
-      }
-      .form-section,
-      .card-section {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-      }
-      .form-section h2,
-      .card-section h2 {
-        font-size: 1.25rem;
-        color: #1a1a2e;
-        margin: 0 0 1.5rem 0;
-      }
-      .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-      }
-      .form-group {
-        margin-bottom: 1rem;
-      }
-      .form-group.full {
-        grid-column: 1 / -1;
-      }
-      .form-group label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-        color: #333;
-      }
-      .form-control {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        border: 2px solid #e1e1e1;
-        border-radius: 0.5rem;
-        font-size: 1rem;
-      }
-      .form-control:focus {
-        outline: none;
-        border-color: #667eea;
-      }
-      .btn {
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 0.5rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-      }
-      .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
-      .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-      }
-      .btn-secondary {
-        background: #e5e7eb;
-        color: #666;
-      }
-      .btn-danger {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .btn-danger:hover {
-        background: #fca5a5;
-      }
-      .btn-sm {
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
-      }
-      .btn-outline {
-        background: transparent;
-        border: 2px solid #667eea;
-        color: #667eea;
-      }
-      .btn-outline:hover {
-        background: #667eea;
-        color: white;
-      }
-      .btn-info {
-        background: #e0f2fe;
-        color: #0284c7;
-      }
-      .btn-info:hover {
-        background: #bae6fd;
-      }
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-      }
-      .count-badge {
-        background: #667eea;
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 1rem;
-        font-weight: 600;
-        font-size: 0.875rem;
-      }
-      .persons-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
-      }
-      .person-card {
-        background: #f9fafb;
-        border-radius: 0.75rem;
-        padding: 1.25rem;
-        border: 1px solid #e5e7eb;
-      }
-      .person-name {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1a1a2e;
-        margin-bottom: 0.5rem;
-      }
-      .person-contact {
-        font-size: 0.875rem;
-        color: #666;
-        margin-bottom: 0.25rem;
-      }
-      .person-loans {
-        font-size: 0.875rem;
-        color: #667eea;
-        font-weight: 500;
-        margin: 0.75rem 0;
-      }
-      .person-actions {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-      .loans-list {
-        max-height: 400px;
-        overflow-y: auto;
-      }
-      .loan-item {
-        background: #f9fafb;
-        border-radius: 0.75rem;
-        padding: 1rem;
-        margin-bottom: 0.75rem;
-        border: 1px solid #e5e7eb;
-      }
-      .loan-item:last-child {
-        margin-bottom: 0;
-      }
-      .loan-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.5rem;
-      }
-      .loan-amount {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1a1a2e;
-      }
-      .loan-status {
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        background: #fef3c7;
-        color: #d97706;
-      }
-      .loan-status.completed {
-        background: #dcfce7;
-        color: #16a34a;
-      }
-      .loan-status.overdue {
-        background: #fee2e2;
-        color: #dc2626;
-      }
-      .loan-details {
-        display: flex;
-        gap: 1rem;
-        font-size: 0.75rem;
-        color: #666;
-        margin-bottom: 0.75rem;
-      }
-      .loan-progress .progress-info {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        color: #666;
-        margin-bottom: 0.25rem;
-      }
-      .loan-progress .progress-bar {
-        height: 6px;
-        background: #e5e7eb;
-        border-radius: 3px;
-        overflow: hidden;
-      }
-      .loan-progress .progress-fill {
-        height: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      }
-      .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: #666;
-      }
-      .empty-icon {
-        font-size: 4rem;
-        display: block;
-        margin-bottom: 1rem;
-      }
-      .empty-hint {
-        color: #999;
-        font-size: 0.875rem;
-      }
-      .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 200;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s;
-      }
-      .modal.active {
-        opacity: 1;
-        pointer-events: all;
-      }
-      .modal-content {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        width: 90%;
-        max-width: 500px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      }
-      .modal-content.modal-large {
-        max-width: 600px;
-      }
-      .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-      }
-      .modal-title {
-        font-size: 1.25rem;
-        color: #1a1a2e;
-        margin: 0;
-      }
-      .modal-close {
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-        color: #666;
-      }
-      .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.75rem;
-        margin-top: 1.5rem;
-      }
-      .modal-body p {
-        margin: 0;
-        color: #333;
-      }
-      .toast {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        background: white;
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        z-index: 300;
-        animation: slideIn 0.3s ease-out;
-      }
-      .toast-success {
-        border-left: 4px solid #22c55e;
-      }
-      .toast-error {
-        border-left: 4px solid #dc2626;
-      }
-      .toast-close {
-        background: none;
-        border: none;
-        font-size: 1.25rem;
-        cursor: pointer;
-        color: #666;
-      }
-      @keyframes slideIn {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-      @media (max-width: 768px) {
-        .nav-links {
-          display: none;
-        }
-        .nav-hamburger {
-          display: block;
-        }
-        .form-row {
-          grid-template-columns: 1fr;
-        }
-      }
-    `,
-  ],
+  styles: [`
+    :host {
+      display: block;
+    }
+  `],
 })
 export class PersonasComponent implements OnInit {
   formData = { name: '', phone: '', address: '', notes: '' };
   editData: any = {};
+  isEditing = signal(false);
   showEditModal = signal(false);
   showConfirmModal = signal(false);
   showLoansModal = signal(false);
@@ -751,30 +320,9 @@ export class PersonasComponent implements OnInit {
     return totalPaid >= total;
   }
 
-  isLoanOverdue(loan: any): boolean {
-    if (!loan.dueDate) return false;
-    return new Date(loan.dueDate) < new Date() && !this.isLoanCompleted(loan);
-  }
-
   getLoanStatus(loan: any): string {
     if (this.isLoanCompleted(loan)) return 'Completado';
-    if (this.isLoanOverdue(loan)) return 'En Mora';
     return 'Activo';
-  }
-
-  getPaidAmount(loan: any): number {
-    return this.paymentService.getTotalPaidForLoan(loan.id);
-  }
-
-  getTotalAmount(loan: any): number {
-    return loan.totalToCollect || LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
-  }
-
-  getProgressPercent(loan: any): number {
-    const totalPaid = this.getPaidAmount(loan);
-    const total = this.getTotalAmount(loan);
-    if (total === 0) return 0;
-    return Math.min(100, (totalPaid / total) * 100);
   }
 
   onSubmit(): void {
@@ -796,6 +344,7 @@ export class PersonasComponent implements OnInit {
 
   editPerson(person: Person): void {
     this.editData = { ...person };
+    this.isEditing.set(true);
     this.showEditModal.set(true);
   }
 
@@ -812,6 +361,12 @@ export class PersonasComponent implements OnInit {
   closeEditModal(): void {
     this.showEditModal.set(false);
     this.editData = {};
+    this.isEditing.set(false);
+  }
+
+  cancelEdit(): void {
+    this.isEditing.set(false);
+    this.formData = { name: '', phone: '', address: '', notes: '' };
   }
 
   confirmDelete(person: Person): void {
