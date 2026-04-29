@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, Signal } from '@angular/core';
 import { DataService } from './data.service';
 import { StorageService } from './storage.service';
-import { Loan, PaymentFrequency } from '../models';
+import { Loan, PaymentFrequency, LoanType } from '../models';
 import { PaymentService } from './payment.service';
 
 @Injectable({
@@ -59,6 +59,52 @@ export class LoanService extends DataService<Loan> {
 
   getByPersonId(personId: string): Loan[] {
     return this.filter((l) => l.personId === personId);
+  }
+
+  getByLenderId(lenderId: string): Loan[] {
+    return this.filter((l) => l.lenderId === lenderId);
+  }
+
+  getByRouteId(routeId: string): Loan[] {
+    return this.filter((l) => l.routeId === routeId);
+  }
+
+  getOwnLoans(userId: string): Loan[] {
+    return this.filter((l) => l.userId === userId && l.loanType === 'own');
+  }
+
+  getOwnLoansSignal(userId: string): Signal<Loan[]> {
+    return computed(() => {
+      const all = this.getDataSignal()();
+      return all.filter((l) => l.userId === userId && l.loanType === 'own');
+    });
+  }
+
+  getLenderLoans(userId: string): Loan[] {
+    return this.filter((l) => l.userId === userId && l.loanType === 'lender');
+  }
+
+  getLenderLoansSignal(userId: string): Signal<Loan[]> {
+    return computed(() => {
+      const all = this.getDataSignal()();
+      return all.filter((l) => l.userId === userId && l.loanType === 'lender');
+    });
+  }
+
+  getActiveOwnLoans(userId: string): Loan[] {
+    const ps = this.getPaymentService();
+    return this.getOwnLoans(userId).filter((loan) => {
+      const paid = ps ? ps.getTotalPaidForLoan(loan.id) : 0;
+      return paid < (loan.totalToCollect || loan.amount);
+    });
+  }
+
+  getActiveLenderLoans(userId: string): Loan[] {
+    const ps = this.getPaymentService();
+    return this.getLenderLoans(userId).filter((loan) => {
+      const paid = ps ? ps.getTotalPaidForLoan(loan.id) : 0;
+      return paid < (loan.totalToCollect || loan.amount);
+    });
   }
 
   getActiveLoans(userId: string): Loan[] {
