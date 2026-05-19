@@ -30,7 +30,6 @@ export class Loan extends BaseModel {
     if (!this.amount || this.amount <= 0) errors.push('El monto debe ser mayor a 0');
     if (!this.date) errors.push('La fecha es requerida');
     if (!this.totalToCollect || this.totalToCollect <= 0) errors.push('El total a cobrar es requerido');
-    if (this.totalToCollect <= this.amount) errors.push('El total a cobrar debe ser mayor al monto prestado');
     return errors;
   }
 
