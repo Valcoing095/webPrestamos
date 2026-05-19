@@ -1,6 +1,8 @@
 import { Component, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { NgIcon } from '@ng-icons/core';
+import { featherHome, featherUsers, featherDollarSign, featherCreditCard } from '@ng-icons/feather-icons';
 import {
   AuthService,
   PersonService,
@@ -12,390 +14,149 @@ import {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NgIcon],
   template: `
-    <nav class="navbar">
-      <div class="nav-container">
-        <a href="#" class="nav-brand">📋 Gestor de Préstamos</a>
-        <div class="nav-links">
-          <a routerLink="/dashboard" class="nav-link active">Dashboard</a>
-          <a routerLink="/personas" class="nav-link">Personas</a>
-          <a routerLink="/prestamos" class="nav-link">Préstamos</a>
-          <a routerLink="/pagos" class="nav-link">Pagos</a>
+    <div class="container-fluid px-4 py-4">
+      <header class="mb-4">
+        <h1 class="h3 mb-1">Dashboard</h1>
+        <p class="text-muted mb-0">Resumen de tu actividad de préstamos</p>
+      </header>
+      
+      <!-- Summary Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="rounded-3 bg-primary bg-opacity-10 p-3">
+                <ng-icon name="featherDollarSign" class="text-primary" style="font-size: 1.5rem;"></ng-icon>
+              </div>
+              <div>
+                <span class="text-muted small">Total Prestado</span>
+                <h3 class="h4 mb-0">{{ formatCurrency(summary().totalLoaned) }}</h3>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="nav-user">
-          <span class="nav-username">{{ authService.currentUser()?.name }}</span>
-          <button class="nav-btn-logout" (click)="logout()">Cerrar Sesión</button>
+        
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="rounded-3 bg-success bg-opacity-10 p-3">
+                <ng-icon name="featherCreditCard" class="text-success" style="font-size: 1.5rem;"></ng-icon>
+              </div>
+              <div>
+                <span class="text-muted small">Cobrado</span>
+                <h3 class="h4 mb-0">{{ formatCurrency(summary().totalCollected) }}</h3>
+              </div>
+            </div>
+          </div>
         </div>
-        <button class="nav-hamburger" aria-label="Menú">
-          <span></span><span></span><span></span>
-        </button>
+        
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="rounded-3 bg-warning bg-opacity-10 p-3">
+                <ng-icon name="featherDollarSign" class="text-warning" style="font-size: 1.5rem;"></ng-icon>
+              </div>
+              <div>
+                <span class="text-muted small">Pendiente</span>
+                <h3 class="h4 mb-0">{{ formatCurrency(summary().totalPending) }}</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="rounded-3 bg-info bg-opacity-10 p-3">
+                <ng-icon name="featherHome" class="text-info" style="font-size: 1.5rem;"></ng-icon>
+              </div>
+              <div>
+                <span class="text-muted small">Activos</span>
+                <h3 class="h4 mb-0">{{ summary().activeCount }}</h3>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </nav>
 
-    <main class="main-content">
-      <div class="container">
-        <header class="page-header">
-          <h1>Dashboard</h1>
-          <p class="subtitle">Resumen de tu actividad de préstamos</p>
-        </header>
-
-        <section class="summary-cards">
-          <div class="card card-blue">
-            <div class="card-icon">💵</div>
-            <div class="card-content">
-              <span class="card-label">Total Prestado</span>
-              <span class="card-value">{{ formatCurrency(summary().totalLoaned) }}</span>
+      <div class="row g-4">
+        <!-- Quick Actions -->
+        <div class="col-12 col-lg-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-bottom">
+              <h5 class="card-title mb-0">Accesos Rápidos</h5>
             </div>
-          </div>
-          <div class="card card-green">
-            <div class="card-icon">✓</div>
-            <div class="card-content">
-              <span class="card-label">Cobrado</span>
-              <span class="card-value">{{ formatCurrency(summary().totalCollected) }}</span>
-            </div>
-          </div>
-          <div class="card card-amber">
-            <div class="card-icon">⏳</div>
-            <div class="card-content">
-              <span class="card-label">Pendiente</span>
-              <span class="card-value">{{ formatCurrency(summary().totalPending) }}</span>
-            </div>
-          </div>
-          <div class="card card-purple">
-            <div class="card-icon">📊</div>
-            <div class="card-content">
-              <span class="card-label">Activos</span>
-              <span class="card-value">{{ summary().activeCount }}</span>
-            </div>
-          </div>
-        </section>
-
-        <div class="dashboard-grid">
-          <section class="card-section">
-            <h2>Accesos Rápidos</h2>
-            <div class="quick-actions">
-              <a routerLink="/personas" class="quick-action">
-                <span class="qa-icon">👤</span>
-                <span class="qa-label">Agregar Persona</span>
+            <div class="card-body d-flex flex-column gap-2">
+              <a routerLink="/personas" class="btn btn-outline-primary d-flex align-items-center gap-2">
+                <ng-icon name="featherUsers"></ng-icon> Agregar Persona
               </a>
-              <a routerLink="/prestamos" class="quick-action">
-                <span class="qa-icon">💰</span>
-                <span class="qa-label">Nuevo Préstamo</span>
+              <a routerLink="/prestamos" class="btn btn-outline-success d-flex align-items-center gap-2">
+                <ng-icon name="featherDollarSign"></ng-icon> Nuevo Préstamo
               </a>
-              <a routerLink="/pagos" class="quick-action">
-                <span class="qa-icon">💳</span>
-                <span class="qa-label">Registrar Pago</span>
+              <a routerLink="/pagos" class="btn btn-outline-warning d-flex align-items-center gap-2">
+                <ng-icon name="featherCreditCard"></ng-icon> Registrar Pago
               </a>
             </div>
-          </section>
+          </div>
+        </div>
 
-          <section class="card-section">
-            <div class="section-header">
-              <h2>Últimos Préstamos</h2>
-              <a routerLink="/prestamos" class="see-all">Ver todos →</a>
+        <!-- Recent Loans -->
+        <div class="col-12 col-lg-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Últimos Préstamos</h5>
+              <a routerLink="/prestamos" class="btn btn-sm btn-link">Ver todos</a>
             </div>
-            <div id="recent-loans" class="recent-list">
+            <div class="card-body p-0">
               @for (loan of recentLoans(); track loan.id) {
-                <div class="recent-item">
-                  <div class="recent-item-info">
-                    <span class="recent-item-name">{{ getPersonName(loan.personId) }}</span>
-                    <span class="recent-item-detail">{{ formatDate(loan.date) }}</span>
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                  <div>
+                    <span class="fw-medium">{{ getPersonName(loan.personId) }}</span>
+                    <small class="text-muted d-block">{{ formatDate(loan.date) }}</small>
                   </div>
-                  <span
-                    class="recent-item-amount"
-                    [class.paid]="isLoanCompleted(loan)"
-                    [class.pending]="!isLoanCompleted(loan)"
-                  >
-                    {{ isLoanCompleted(loan) ? '✓ Pagado' : formatCurrency(getLoanBalance(loan)) }}
+                  <span class="badge" [class]="isLoanCompleted(loan) ? 'bg-success' : 'bg-warning'">
+                    {{ isLoanCompleted(loan) ? 'Pagado' : formatCurrency(getLoanBalance(loan)) }}
                   </span>
                 </div>
               } @empty {
-                <div class="empty-recent">No hay préstamos registrados</div>
+                <div class="text-center text-muted p-4">No hay préstamos registrados</div>
               }
             </div>
-          </section>
+          </div>
+        </div>
 
-          <section class="card-section">
-            <div class="section-header">
-              <h2>Últimos Pagos</h2>
-              <a routerLink="/pagos" class="see-all">Ver todos →</a>
+        <!-- Recent Payments -->
+        <div class="col-12 col-lg-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Últimos Pagos</h5>
+              <a routerLink="/pagos" class="btn btn-sm btn-link">Ver todos</a>
             </div>
-            <div id="recent-payments" class="recent-list">
+            <div class="card-body p-0">
               @for (payment of recentPayments(); track payment.id) {
-                <div class="recent-item">
-                  <div class="recent-item-info">
-                    <span class="recent-item-name">{{ getLoanPersonName(payment.loanId) }}</span>
-                    <span class="recent-item-detail">{{ formatDate(payment.date) }}</span>
+                <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                  <div>
+                    <span class="fw-medium">{{ getLoanPersonName(payment.loanId) }}</span>
+                    <small class="text-muted d-block">{{ formatDate(payment.date) }}</small>
                   </div>
-                  <span class="recent-item-amount paid">+{{ formatCurrency(payment.amount) }}</span>
+                  <span class="badge bg-success">+{{ formatCurrency(payment.amount) }}</span>
                 </div>
               } @empty {
-                <div class="empty-recent">No hay pagos registrados</div>
+                <div class="text-center text-muted p-4">No hay pagos registrados</div>
               }
             </div>
-          </section>
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   `,
-  styles: [
-    `
-      .navbar {
-        background: white;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        padding: 1rem 0;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 100;
-      }
-      .nav-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .nav-brand {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1a1a2e;
-        text-decoration: none;
-      }
-      .nav-links {
-        display: flex;
-        gap: 1.5rem;
-      }
-      .nav-link {
-        color: #666;
-        text-decoration: none;
-        font-weight: 500;
-        padding: 0.5rem 0;
-        border-bottom: 2px solid transparent;
-        transition: all 0.3s;
-      }
-      .nav-link:hover,
-      .nav-link.active {
-        color: #667eea;
-        border-bottom-color: #667eea;
-      }
-      .nav-user {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-      }
-      .nav-username {
-        font-weight: 500;
-        color: #333;
-      }
-      .nav-btn-logout {
-        background: #f3f4f6;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        font-weight: 500;
-        color: #666;
-        transition: all 0.3s;
-      }
-      .nav-btn-logout:hover {
-        background: #e5e7eb;
-      }
-      .nav-hamburger {
-        display: none;
-        background: none;
-        border: none;
-        cursor: pointer;
-      }
-      .main-content {
-        margin-top: 80px;
-        padding: 2rem 1.5rem;
-        background: #f5f7fa;
-        min-height: calc(100vh - 80px);
-      }
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-      .page-header {
-        margin-bottom: 2rem;
-      }
-      .page-header h1 {
-        font-size: 2rem;
-        color: #1a1a2e;
-        margin: 0 0 0.5rem 0;
-      }
-      .subtitle {
-        color: #666;
-        margin: 0;
-      }
-      .summary-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-      }
-      .card {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-      }
-      .card-icon {
-        font-size: 2rem;
-        width: 60px;
-        height: 60px;
-        border-radius: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .card-blue .card-icon {
-        background: #dbeafe;
-      }
-      .card-green .card-icon {
-        background: #dcfce7;
-      }
-      .card-amber .card-icon {
-        background: #fef3c7;
-      }
-      .card-purple .card-icon {
-        background: #ede9fe;
-      }
-      .card-content {
-        display: flex;
-        flex-direction: column;
-      }
-      .card-label {
-        font-size: 0.875rem;
-        color: #666;
-      }
-      .card-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1a1a2e;
-      }
-      .dashboard-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-      }
-      @media (min-width: 768px) {
-        .dashboard-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-      .card-section {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-      }
-      .card-section h2 {
-        font-size: 1.25rem;
-        color: #1a1a2e;
-        margin: 0 0 1rem 0;
-      }
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-      }
-      .section-header h2 {
-        margin: 0;
-      }
-      .see-all {
-        color: #667eea;
-        text-decoration: none;
-        font-weight: 500;
-        font-size: 0.875rem;
-      }
-      .quick-actions {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-      .quick-action {
-        flex: 1;
-        min-width: 120px;
-        background: #f5f7fa;
-        border-radius: 0.75rem;
-        padding: 1.25rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-        transition: all 0.3s;
-      }
-      .quick-action:hover {
-        background: #eef2ff;
-        transform: translateY(-2px);
-      }
-      .qa-icon {
-        font-size: 2rem;
-      }
-      .qa-label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #1a1a2e;
-      }
-      .recent-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-      }
-      .recent-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem;
-        background: #f5f7fa;
-        border-radius: 0.5rem;
-      }
-      .recent-item-info {
-        display: flex;
-        flex-direction: column;
-      }
-      .recent-item-name {
-        font-weight: 500;
-        color: #1a1a2e;
-      }
-      .recent-item-detail {
-        font-size: 0.75rem;
-        color: #666;
-      }
-      .recent-item-amount {
-        font-weight: 600;
-      }
-      .recent-item-amount.paid {
-        color: #22c55e;
-      }
-      .recent-item-amount.pending {
-        color: #f59e0b;
-      }
-      .empty-recent {
-        text-align: center;
-        padding: 2rem;
-        color: #666;
-      }
-      @media (max-width: 768px) {
-        .nav-links {
-          display: none;
-        }
-        .nav-hamburger {
-          display: block;
-        }
-      }
-    `,
-  ],
+  styles: [`
+    :host {
+      display: block;
+    }
+  `],
 })
 export class DashboardComponent implements OnInit {
   constructor(

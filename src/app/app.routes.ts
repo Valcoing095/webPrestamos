@@ -18,24 +18,27 @@ export const routes: Routes = [
     canActivate: [loginGuard]
   },
   {
-    path: 'dashboard',
-    loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'personas',
-    loadComponent: () => import('./components/personas/personas.component').then(m => m.PersonasComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'prestamos',
-    loadComponent: () => import('./components/prestamos/prestamos.component').then(m => m.PrestamosComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'pagos',
-    loadComponent: () => import('./components/pagos/pagos.component').then(m => m.PagosComponent),
-    canActivate: [authGuard]
+    path: '',
+    loadComponent: () => import('./layouts/classic-layout/classic-layout').then(m => m.ClassicLayout),
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent)
+      },
+      {
+        path: 'personas',
+        loadComponent: () => import('./components/personas/personas.component').then(m => m.PersonasComponent)
+      },
+      {
+        path: 'prestamos',
+        loadComponent: () => import('./components/prestamos/prestamos.component').then(m => m.PrestamosComponent)
+      },
+      {
+        path: 'pagos',
+        loadComponent: () => import('./components/pagos/pagos.component').then(m => m.PagosComponent)
+      }
+    ]
   },
   {
     path: '**',
