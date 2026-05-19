@@ -1,344 +1,477 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AuthService, LenderService, RouteService, LoanService, LoanCalculator } from '../../../core/services';
-import { Lender } from '../../../core/models';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { LenderService, RouteService } from '../../core/services';
+import { AuthService } from '../../core/services/auth.service';
+import { Lender, Route } from '../../core/models';
 
 @Component({
   selector: 'app-prestamistas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   template: `
-    <div class="container-fluid px-4 py-4">
-      <header class="mb-4">
-        <h1 class="h3 mb-1">Gestion de Prestamistas</h1>
-        <p class="text-muted mb-0">Administra tus prestamistas y su capital</p>
-      </header>
-      
-      <!-- Resumen Financiero -->
+    <div class="container-fluid p-4">
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <h1 class="h3">Gestión de Prestamistas</h1>
+          <p class="text-muted">Administra los prestamistas, sus rutas y asignaciones</p>
+        </div>
+        <div class="col-md-6 text-end">
+          <button class="btn btn-primary" (click)="openCreateModal()">
+            <i class="bi bi-plus-circle"></i> Nuevo Prestamista
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumen -->
       <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="card border-0 shadow-sm bg-primary text-white">
             <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Capital Total Disponible</h6>
-              <h3 class="card-title mb-0">{{ formatCurrency(totalCapital()) }}</h3>
+              <h6 class="card-subtitle mb-2 opacity-75">Total Prestamistas</h6>
+              <h3 class="mb-0">{{ lenders().length }}</h3>
             </div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="card border-0 shadow-sm bg-success text-white">
             <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Prestamistas Activos</h6>
-              <h3 class="card-title mb-0">{{ lenders().length }}</h3>
+              <h6 class="card-subtitle mb-2 opacity-75">Capital Total</h6>
+              <h3 class="mb-0">{{ formatCurrency(totalCapital()) }}</h3>
             </div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="card border-0 shadow-sm bg-info text-white">
             <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Total Prestado</h6>
-              <h3 class="card-title mb-0">{{ formatCurrency(totalLoaned()) }}</h3>
+              <h6 class="card-subtitle mb-2 opacity-75">Rutas Asignadas</h6>
+              <h3 class="mb-0">{{ assignedRoutesCount() }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm bg-warning text-white">
+            <div class="card-body">
+              <h6 class="card-subtitle mb-2 opacity-75">Prestamistas Activos</h6>
+              <h3 class="mb-0">{{ activeLendersCount() }}</h3>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Formulario -->
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent">
-          <h5 class="card-title mb-0">{{ editingId() ? 'Editar Prestamista' : 'Agregar Nuevo Prestamista' }}</h5>
-        </div>
-        <div class="card-body">
-          <form (ngSubmit)="onSubmit()">
-            <div class="row g-3">
-              <div class="col-md-3">
-                <label for="lender-name" class="form-label">Nombre *</label>
-                <input type="text" id="lender-name" [(ngModel)]="formData.name" name="name" class="form-control" placeholder="Nombre completo" required />
-              </div>
-              <div class="col-md-3">
-                <label for="lender-phone" class="form-label">Telefono</label>
-                <input type="tel" id="lender-phone" [(ngModel)]="formData.phone" name="phone" class="form-control" placeholder="Opcional" />
-              </div>
-              <div class="col-md-3">
-                <label for="lender-email" class="form-label">Email</label>
-                <input type="email" id="lender-email" [(ngModel)]="formData.email" name="email" class="form-control" placeholder="Opcional" />
-              </div>
-              <div class="col-md-3">
-                <label for="lender-capital" class="form-label">Capital Disponible *</label>
-                <input type="number" id="lender-capital" [(ngModel)]="formData.availableCapital" name="availableCapital" class="form-control" min="0" step="0.01" required />
-              </div>
-            </div>
-            <div class="row g-3 mt-1">
-              <div class="col-md-6">
-                <label for="lender-routes" class="form-label">Rutas Asignadas</label>
-                <select id="lender-routes" [(ngModel)]="formData.selectedRouteIds" name="routeIds" class="form-select" multiple>
-                  @for (route of routes(); track route.id) {
-                    <option [value]="route.id">{{ route.name }}</option>
-                  }
-                </select>
-                <small class="text-muted">Mantener Ctrl para seleccionar multiples</small>
-              </div>
-              <div class="col-md-6">
-                <label for="lender-notes" class="form-label">Notas</label>
-                <textarea id="lender-notes" [(ngModel)]="formData.notes" name="notes" class="form-control" rows="2" placeholder="Notas adicionales..."></textarea>
-              </div>
-            </div>
-            <div class="mt-3 d-flex gap-2">
-              <button type="submit" class="btn btn-primary">
-                {{ editingId() ? 'Actualizar' : 'Agregar' }} Prestamista
-              </button>
-              @if (editingId()) {
-                <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancelar</button>
-              }
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Lista de Prestamistas -->
+      <!-- Tabla de Prestamistas -->
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0">Prestamistas Registrados</h5>
-          <span class="badge bg-primary">{{ lenders().length }}</span>
+        <div class="card-header bg-light">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="Buscar por nombre, teléfono o email..."
+                (input)="searchTerm.set($event.target.value)"
+              />
+            </div>
+            <div class="col-md-4 text-end">
+              <small class="text-muted">Mostrando {{ filteredLenders().length }} de {{ lenders().length }}</small>
+            </div>
+          </div>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th class="px-3">Nombre</th>
-                  <th>Contacto</th>
-                  <th>Capital Disponible</th>
-                  <th>Prestamos Activos</th>
-                  <th>Rutas</th>
-                  <th class="text-end px-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (lender of lenders(); track lender.id) {
-                  <tr>
-                    <td class="px-3">
-                      <div class="fw-medium">{{ lender.name }}</div>
-                    </td>
-                    <td>
-                      <div class="small">
-                        @if (lender.phone) {
-                          <div class="text-muted">{{ lender.phone }}</div>
-                        }
-                        @if (lender.email) {
-                          <div class="text-muted">{{ lender.email }}</div>
-                        }
-                      </div>
-                    </td>
-                    <td>
-                      <span class="text-success fw-bold">{{ formatCurrency(lender.availableCapital) }}</span>
-                    </td>
-                    <td>
-                      <span class="badge bg-info">{{ getLenderLoansCount(lender.id) }}</span>
-                    </td>
-                    <td>
-                      @for (routeId of lender.routeIds; track routeId) {
-                        <span class="badge bg-secondary me-1">{{ getRouteName(routeId) }}</span>
-                      } @empty {
-                        <span class="text-muted small">Sin rutas</span>
-                      }
-                    </td>
-                    <td class="text-end px-3">
-                      <button class="btn btn-sm btn-outline-primary me-1" (click)="editLender(lender)">Editar</button>
-                      <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(lender)">Eliminar</button>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No hay prestamistas registrados</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>Capital</th>
+                <th>Ruta Asignada</th>
+                <th>Comisión</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let lender of filteredLenders()">
+                <td><strong>{{ lender.name }}</strong></td>
+                <td>{{ lender.phone || '-' }}</td>
+                <td>{{ lender.email || '-' }}</td>
+                <td class="text-end">{{ formatCurrency(lender.availableCapital) }}</td>
+                <td>
+                  <span *ngIf="getRouteName(lender.routeId)" class="badge bg-info">
+                    {{ getRouteName(lender.routeId) }}
+                  </span>
+                  <span *ngIf="!lender.routeId" class="text-muted">-</span>
+                </td>
+                <td class="text-center">{{ lender.commissionPercentage }}%</td>
+                <td>
+                  <span *ngIf="lender.isActive" class="badge bg-success">Activo</span>
+                  <span *ngIf="!lender.isActive" class="badge bg-secondary">Inactivo</span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary me-1" (click)="openEditModal(lender)">Editar</button>
+                  <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(lender)">Eliminar</button>
+                </td>
+              </tr>
+              <tr *ngIf="filteredLenders().length === 0">
+                <td colspan="8" class="text-center text-muted py-4">No hay prestamistas registrados</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal de Crear/Editar -->
+      <div class="modal" [class.show]="showModal()" [style.display]="showModal() ? 'block' : 'none'">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ editingLender() ? 'Editar Prestamista' : 'Nuevo Prestamista' }}</h5>
+              <button type="button" class="btn-close" (click)="closeModal()"></button>
+            </div>
+            <div class="modal-body">
+              <form [formGroup]="form" *ngIf="form">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="name" class="form-label">Nombre *</label>
+                      <input 
+                        type="text" 
+                        id="name" 
+                        class="form-control" 
+                        formControlName="name"
+                        placeholder="Nombre del prestamista"
+                      />
+                      <small class="text-danger" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+                        El nombre es requerido
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="phone" class="form-label">Teléfono</label>
+                      <input 
+                        type="tel" 
+                        id="phone" 
+                        class="form-control" 
+                        formControlName="phone"
+                        placeholder="+1234567890"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="email" class="form-label">Email</label>
+                      <input 
+                        type="email" 
+                        id="email" 
+                        class="form-control" 
+                        formControlName="email"
+                        placeholder="correo@example.com"
+                      />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="availableCapital" class="form-label">Capital Disponible *</label>
+                      <input 
+                        type="number" 
+                        id="availableCapital" 
+                        class="form-control" 
+                        formControlName="availableCapital"
+                        placeholder="0.00"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="routeId" class="form-label">Ruta Asignada</label>
+                      <select 
+                        id="routeId" 
+                        class="form-select" 
+                        formControlName="routeId"
+                      >
+                        <option [value]="null">Sin ruta asignada</option>
+                        <option *ngFor="let route of availableRoutes()" [value]="route.id">
+                          {{ route.name }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="commissionPercentage" class="form-label">Comisión (%) *</label>
+                      <input 
+                        type="number" 
+                        id="commissionPercentage" 
+                        class="form-control" 
+                        formControlName="commissionPercentage"
+                        min="0"
+                        max="100"
+                        placeholder="10"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="notes" class="form-label">Notas</label>
+                  <textarea 
+                    id="notes" 
+                    class="form-control" 
+                    formControlName="notes"
+                    rows="3"
+                    placeholder="Notas adicionales..."
+                  ></textarea>
+                </div>
+
+                <div class="form-check">
+                  <input 
+                    type="checkbox" 
+                    id="isActive" 
+                    class="form-check-input" 
+                    formControlName="isActive"
+                  />
+                  <label class="form-check-label" for="isActive">
+                    Prestamista Activo
+                  </label>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+              <button 
+                type="button" 
+                class="btn btn-primary" 
+                (click)="saveLender()"
+                [disabled]="!form || form.invalid"
+              >
+                Guardar
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      <div class="modal-backdrop fade" [class.show]="showModal()" *ngIf="showModal()"></div>
 
-    <!-- Modal Confirmacion -->
-    @if (showConfirmModal()) {
-      <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+      <!-- Modal de Confirmación de Eliminación -->
+      <div class="modal" [class.show]="showDeleteModal()" [style.display]="showDeleteModal() ? 'block' : 'none'">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">Confirmar Eliminacion</h5>
-              <button type="button" class="btn-close" (click)="closeConfirmModal()"></button>
+              <h5 class="modal-title">Confirmar Eliminación</h5>
+              <button type="button" class="btn-close" (click)="closeDeleteModal()"></button>
             </div>
             <div class="modal-body">
-              <p>Esta seguro de eliminar al prestamista <strong>{{ lenderToDelete()?.name }}</strong>?</p>
+              <p *ngIf="lenderToDelete()">
+                ¿Estás seguro de que deseas eliminar al prestamista <strong>{{ lenderToDelete()?.name }}</strong>?
+              </p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeConfirmModal()">Cancelar</button>
+              <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
               <button type="button" class="btn btn-danger" (click)="deleteLender()">Eliminar</button>
             </div>
           </div>
         </div>
       </div>
-    }
+      <div class="modal-backdrop fade" [class.show]="showDeleteModal()" *ngIf="showDeleteModal()"></div>
 
-    <!-- Toast -->
-    @if (toast()) {
-      <div class="toast show position-fixed bottom-0 end-0 m-3" [class]="'bg-' + (toast()?.type === 'success' ? 'success' : 'danger') + ' text-white'">
-        <div class="toast-body d-flex justify-content-between align-items-center">
-          {{ toast()?.message }}
-          <button type="button" class="btn-close btn-close-white" (click)="clearToast()"></button>
-        </div>
+      <!-- Toast de Notificación -->
+      <div 
+        *ngIf="toast()" 
+        class="position-fixed bottom-0 end-0 m-3" 
+        [class.bg-success]="toast()?.type === 'success'"
+        [class.bg-danger]="toast()?.type === 'error'"
+        class="text-white rounded-2 px-4 py-3"
+      >
+        {{ toast()?.message }}
       </div>
-    }
+    </div>
   `,
   styles: [`
-    :host { display: block; }
-  `],
+    :host {
+      display: block;
+      background-color: #f5f5f5;
+      min-height: 100vh;
+    }
+    .modal.show {
+      z-index: 1050;
+    }
+    .modal-backdrop.show {
+      z-index: 1040;
+    }
+    .bg-success {
+      background-color: #198754 !important;
+    }
+    .bg-danger {
+      background-color: #dc3545 !important;
+    }
+  `]
 })
 export class PrestamistasComponent implements OnInit {
-  formData = {
-    name: '',
-    phone: '',
-    email: '',
-    availableCapital: 0,
-    notes: '',
-    selectedRouteIds: [] as string[]
-  };
+  private lenderService = new LenderService();
+  private routeService = new RouteService();
+  private authService = new AuthService();
+  private formBuilder = new FormBuilder();
 
-  editingId = signal<string | null>(null);
-  showConfirmModal = signal(false);
+  lenders = signal<Lender[]>([]);
+  routes = signal<Route[]>([]);
+  searchTerm = signal('');
+  showModal = signal(false);
+  showDeleteModal = signal(false);
+  editingLender = signal<Lender | null>(null);
   lenderToDelete = signal<Lender | null>(null);
+  form: FormGroup | null = null;
   toast = signal<{ message: string; type: 'success' | 'error' } | null>(null);
+  userId: string = '';
 
-  constructor(
-    public authService: AuthService,
-    private lenderService: LenderService,
-    private routeService: RouteService,
-    private loanService: LoanService
-  ) {}
-
-  ngOnInit(): void {}
-
-  private userId = computed(() => this.authService.getUserId());
-
-  lenders = computed(() => {
-    const uid = this.userId();
-    return uid ? this.lenderService.getLendersSignal(uid)() : [];
+  filteredLenders = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    return this.lenders().filter(l => 
+      l.name.toLowerCase().includes(term) ||
+      (l.phone && l.phone.toLowerCase().includes(term)) ||
+      (l.email && l.email.toLowerCase().includes(term))
+    );
   });
 
-  routes = computed(() => {
-    const uid = this.userId();
-    return uid ? this.routeService.getRoutesSignal(uid)() : [];
+  availableRoutes = computed(() => {
+    return this.routes().filter(r => r.userId === this.userId && r.isActive);
   });
 
   totalCapital = computed(() => {
     return this.lenders().reduce((sum, l) => sum + l.availableCapital, 0);
   });
 
-  totalLoaned = computed(() => {
-    const uid = this.userId();
-    if (!uid) return 0;
-    const loans = this.loanService.getByUserId(uid);
-    return loans.reduce((sum, l) => sum + l.amount, 0);
+  assignedRoutesCount = computed(() => {
+    return this.lenders().filter(l => l.routeId).length;
   });
 
-  getLenderLoansCount(lenderId: string): number {
-    return this.loanService.getByLenderId(lenderId).length;
+  activeLendersCount = computed(() => {
+    return this.lenders().filter(l => l.isActive).length;
+  });
+
+  ngOnInit() {
+    this.userId = this.authService.getCurrentUserId() || '';
+    this.loadData();
   }
 
-  getRouteName(routeId: string): string {
-    return this.routeService.getById(routeId)?.name || 'Desconocida';
+  loadData() {
+    this.lenders.set(this.lenderService.getByUserId(this.userId));
+    this.routes.set(this.routeService.getByUserId(this.userId));
+  }
+
+  getRouteName(routeId: string | null): string {
+    if (!routeId) return '';
+    const route = this.routes().find(r => r.id === routeId);
+    return route ? route.name : '';
   }
 
   formatCurrency(amount: number): string {
-    return LoanCalculator.formatCurrency(amount);
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   }
 
-  onSubmit(): void {
+  openCreateModal() {
+    this.editingLender.set(null);
+    this.form = this.formBuilder.group({
+      name: ['', Validators.required],
+      phone: [''],
+      email: ['', Validators.email],
+      availableCapital: [0, [Validators.required, Validators.min(0)]],
+      routeId: [null],
+      commissionPercentage: [10, [Validators.required, Validators.min(0), Validators.max(100)]],
+      notes: [''],
+      isActive: [true]
+    });
+    this.showModal.set(true);
+  }
+
+  openEditModal(lender: Lender) {
+    this.editingLender.set(lender);
+    this.form = this.formBuilder.group({
+      name: [lender.name, Validators.required],
+      phone: [lender.phone],
+      email: [lender.email, Validators.email],
+      availableCapital: [lender.availableCapital, [Validators.required, Validators.min(0)]],
+      routeId: [lender.routeId],
+      commissionPercentage: [lender.commissionPercentage, [Validators.required, Validators.min(0), Validators.max(100)]],
+      notes: [lender.notes],
+      isActive: [lender.isActive]
+    });
+    this.showModal.set(true);
+  }
+
+  saveLender() {
+    if (!this.form || this.form.invalid) return;
+
+    const formValue = this.form.value;
+    
     try {
-      const userId = this.authService.getUserId();
-      if (!userId) return;
-
-      const data = {
-        name: this.formData.name,
-        phone: this.formData.phone,
-        email: this.formData.email,
-        availableCapital: this.formData.availableCapital,
-        notes: this.formData.notes,
-        routeIds: this.formData.selectedRouteIds,
-        userId
-      };
-
-      if (this.editingId()) {
-        this.lenderService.updateLender(this.editingId()!, data);
-        this.showToast('Prestamista actualizado', 'success');
+      if (this.editingLender()) {
+        const lender = this.editingLender()!;
+        lender.update(formValue);
+        this.lenderService.update(lender);
+        this.showToast('Prestamista actualizado correctamente', 'success');
       } else {
-        this.lenderService.create(data);
-        this.showToast('Prestamista agregado', 'success');
+        const newLender = new Lender({
+          ...formValue,
+          userId: this.userId,
+          createdAt: new Date().toISOString()
+        });
+        this.lenderService.create(newLender);
+        this.showToast('Prestamista creado correctamente', 'success');
       }
 
-      this.resetForm();
+      this.loadData();
+      this.closeModal();
     } catch (error: any) {
-      this.showToast(error.message, 'error');
+      this.showToast(error.message || 'Error al guardar', 'error');
     }
   }
 
-  editLender(lender: Lender): void {
-    this.editingId.set(lender.id);
-    this.formData = {
-      name: lender.name,
-      phone: lender.phone,
-      email: lender.email,
-      availableCapital: lender.availableCapital,
-      notes: lender.notes,
-      selectedRouteIds: [...lender.routeIds]
-    };
-  }
-
-  cancelEdit(): void {
-    this.resetForm();
-  }
-
-  confirmDelete(lender: Lender): void {
+  confirmDelete(lender: Lender) {
     this.lenderToDelete.set(lender);
-    this.showConfirmModal.set(true);
+    this.showDeleteModal.set(true);
   }
 
-  closeConfirmModal(): void {
-    this.showConfirmModal.set(false);
+  deleteLender() {
+    const lender = this.lenderToDelete();
+    if (lender) {
+      try {
+        this.lenderService.delete(lender.id);
+        this.showToast('Prestamista eliminado correctamente', 'success');
+        this.loadData();
+      } catch (error: any) {
+        this.showToast(error.message || 'Error al eliminar', 'error');
+      }
+    }
+    this.closeDeleteModal();
+  }
+
+  closeModal() {
+    this.showModal.set(false);
+    this.editingLender.set(null);
+    this.form = null;
+  }
+
+  closeDeleteModal() {
+    this.showDeleteModal.set(false);
     this.lenderToDelete.set(null);
   }
 
-  deleteLender(): void {
-    const lender = this.lenderToDelete();
-    if (lender) {
-      const userId = this.authService.getUserId();
-      if (userId) {
-        this.lenderService.deleteWithUserId(lender.id, userId);
-        this.showToast('Prestamista eliminado', 'success');
-      }
-    }
-    this.closeConfirmModal();
-  }
-
-  resetForm(): void {
-    this.editingId.set(null);
-    this.formData = {
-      name: '',
-      phone: '',
-      email: '',
-      availableCapital: 0,
-      notes: '',
-      selectedRouteIds: []
-    };
-  }
-
-  showToast(message: string, type: 'success' | 'error'): void {
+  showToast(message: string, type: 'success' | 'error') {
     this.toast.set({ message, type });
-    setTimeout(() => this.clearToast(), 3000);
-  }
-
-  clearToast(): void {
-    this.toast.set(null);
+    setTimeout(() => this.toast.set(null), 3000);
   }
 }
