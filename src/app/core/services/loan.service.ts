@@ -83,13 +83,13 @@ export class LoanService extends DataService<Loan> {
 
   // Prestamos gestionados por prestamistas
   getLenderLoans(userId: string): Loan[] {
-    return this.filter((l) => l.userId === userId && l.loanType === 'lender' && l.lenderId);
+    return this.filter((l) => l.userId === userId && l.loanType === 'lender' && !!l.lenderId);
   }
 
   getLenderLoansSignal(userId: string): Signal<Loan[]> {
     return computed(() => {
       const allLoans = this.getDataSignal()();
-      return allLoans.filter((l) => l.userId === userId && l.loanType === 'lender' && l.lenderId);
+      return allLoans.filter((l) => l.userId === userId && l.loanType === 'lender' && !!l.lenderId);
     });
   }
 

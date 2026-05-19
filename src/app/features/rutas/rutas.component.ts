@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouteService, LenderService } from '../../core/services';
@@ -256,10 +256,10 @@ import { Route, Lender } from '../../core/models';
   `]
 })
 export class RutasComponent implements OnInit {
-  private routeService = new RouteService();
-  private lenderService = new LenderService();
-  private authService = new AuthService();
-  private formBuilder = new FormBuilder();
+  private routeService = inject(RouteService);
+  private lenderService = inject(LenderService);
+  private authService = inject(AuthService);
+  private formBuilder = inject(FormBuilder);
 
   routes = signal<Route[]>([]);
   lenders = signal<Lender[]>([]);
@@ -294,7 +294,7 @@ export class RutasComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.userId = this.authService.getCurrentUserId() || '';
+    this.userId = this.authService.getUserId() || '';
     this.loadData();
   }
 
@@ -342,7 +342,7 @@ export class RutasComponent implements OnInit {
       if (this.editingRoute()) {
         const route = this.editingRoute()!;
         route.update(formValue);
-        this.routeService.update(route);
+        this.routeService.update(route.id, formValue);
         this.showToast('Ruta actualizada correctamente', 'success');
       } else {
         const newRoute = new Route({

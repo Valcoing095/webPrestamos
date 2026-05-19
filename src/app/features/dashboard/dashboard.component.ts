@@ -1,6 +1,7 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LoanService, PaymentService, LenderService, PersonService, AuthService } from '../../core/services';
+import { LoanService, PaymentService, LenderService, PersonService } from '../../core/services';
+import { AuthService } from '../../core/services/auth.service';
 import { Loan, Payment, Lender, Person } from '../../core/models';
 
 @Component({
@@ -152,13 +153,12 @@ import { Loan, Payment, Lender, Person } from '../../core/models';
                 </thead>
                 <tbody>
                   <tr *ngFor="let payment of recentPayments()">
-                    <td><strong>{{ getPersonName(payment.personId) }}</strong></td>
+                    <td><strong>{{ getPersonNameForLoan(payment.loanId) }}</strong></td>
                     <td><span class="badge bg-secondary">{{ getLoanId(payment.loanId) }}</span></td>
                     <td class="text-end">{{ formatCurrency(payment.amount) }}</td>
-                    <td>{{ formatDate(payment.paymentDate) }}</td>
+                    <td>{{ formatDate(payment.date) }}</td>
                     <td>
-                      <span *ngIf="payment.paymentType === 'partial'" class="badge bg-warning">Parcial</span>
-                      <span *ngIf="payment.paymentType === 'full'" class="badge bg-success">Total</span>
+                      <span class="badge bg-info">Pago</span>
                     </td>
                   </tr>
                   <tr *ngIf="recentPayments().length === 0">
@@ -233,11 +233,11 @@ import { Loan, Payment, Lender, Person } from '../../core/models';
   `]
 })
 export class DashboardComponent implements OnInit {
-  private loanService = new LoanService();
-  private paymentService = new PaymentService();
-  private lenderService = new LenderService();
-  private personService = new PersonService();
-  private authService = new AuthService();
+  private loanService = inject(LoanService);
+  private paymentService = inject(PaymentService);
+  private lenderService = inject(LenderService);
+  private personService = inject(PersonService);
+  private authService = inject(AuthService);
 
   loans = signal<Loan[]>([]);
   payments = signal<Payment[]>([]);
@@ -297,12 +297,12 @@ export class DashboardComponent implements OnInit {
 
   recentPayments = computed(() => {
     return this.payments()
-      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
   });
 
   ngOnInit() {
-    this.userId = this.authService.getCurrentUserId() || '';
+    this.userId = this.authService.getUserId() || '';
     this.loadData();
   }
 
@@ -316,6 +316,12 @@ export class DashboardComponent implements OnInit {
   getPersonName(personId: string): string {
     const person = this.persons().find(p => p.id === personId);
     return person ? person.name : 'Desconocido';
+  }
+
+  getPersonNameForLoan(loanId: string): string {
+    const loan = this.loans().find(l => l.id === loanId);
+    if (!loan) return 'Desconocido';
+    return this.getPersonName(loan.personId);
   }
 
   getLoanId(loanId: string): string {

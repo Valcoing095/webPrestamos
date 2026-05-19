@@ -214,13 +214,13 @@ export class LiquidacionComponent {
   selectedLenderForDetails = '';
 
   lenders = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     return this.lenderService.getByUserId(userId);
   });
 
   settlements = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
 
     return this.lenders().map(lender => {
@@ -295,7 +295,7 @@ export class LiquidacionComponent {
   });
 
   movements = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
 
     const result: Array<{

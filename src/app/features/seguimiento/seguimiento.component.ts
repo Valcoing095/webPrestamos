@@ -3,15 +3,12 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
-import { 
-  AuthService, 
-  LoanService, 
-  PaymentService, 
-  PersonService, 
-  LenderService, 
-  RouteService,
-  LoanCalculator 
-} from '../../../core/services';
+import { AuthService } from '../../core/services/auth.service';
+import { LoanService, LoanCalculator } from '../../core/services/loan.service';
+import { PaymentService } from '../../core/services/payment.service';
+import { PersonService } from '../../core/services/person.service';
+import { LenderService } from '../../core/services/lender.service';
+import { RouteService } from '../../core/services/route.service';
 
 @Component({
   selector: 'app-seguimiento',
@@ -213,6 +210,13 @@ export class SeguimientoComponent implements OnInit {
   filterLenderId = '';
   filterRouteId = '';
 
+  private authService: AuthService;
+  private loanService: LoanService;
+  private paymentService: PaymentService;
+  private personService: PersonService;
+  private lenderService: LenderService;
+  private routeService: RouteService;
+
   barChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -234,14 +238,20 @@ export class SeguimientoComponent implements OnInit {
 
   constructor(
     @Inject(PLATFORM_ID) platformId: Object,
-    public authService: AuthService,
-    private loanService: LoanService,
-    private paymentService: PaymentService,
-    private personService: PersonService,
-    private lenderService: LenderService,
-    private routeService: RouteService
+    authService: AuthService,
+    loanService: LoanService,
+    paymentService: PaymentService,
+    personService: PersonService,
+    lenderService: LenderService,
+    routeService: RouteService
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
+    this.authService = authService;
+    this.loanService = loanService;
+    this.paymentService = paymentService;
+    this.personService = personService;
+    this.lenderService = lenderService;
+    this.routeService = routeService;
   }
 
   ngOnInit(): void {
@@ -257,35 +267,35 @@ export class SeguimientoComponent implements OnInit {
   private userId = computed(() => this.authService.getUserId());
 
   lenders = computed(() => {
-    const uid = this.userId();
-    return uid ? this.lenderService.getLendersSignal(uid)() : [];
+    const uid = this.authService.getUserId();
+    return uid ? this.lenderService.getByUserId(uid) : [];
   });
 
   routes = computed(() => {
-    const uid = this.userId();
-    return uid ? this.routeService.getRoutesSignal(uid)() : [];
+    const uid = this.authService.getUserId();
+    return uid ? this.routeService.getByUserId(uid) : [];
   });
 
   loans = computed(() => {
-    const uid = this.userId();
-    return uid ? this.loanService.getLoansSignal(uid)() : [];
+    const uid = this.authService.getUserId();
+    return uid ? this.loanService.getByUserId(uid) : [];
   });
 
   payments = computed(() => {
-    const uid = this.userId();
-    return uid ? this.paymentService.getPaymentsSignal(uid)() : [];
+    const uid = this.authService.getUserId();
+    return uid ? this.paymentService.getByUserId(uid) : [];
   });
 
   persons = computed(() => {
-    const uid = this.userId();
-    return uid ? this.personService.getPersonsSignal(uid)() : [];
+    const uid = this.authService.getUserId();
+    return uid ? this.personService.getByUserId(uid) : [];
   });
 
   // KPIs
   totalMora = computed(() => {
-    const loans = this.loans();
+    const loansData = this.loans();
     let mora = 0;
-    loans.forEach(loan => {
+    loansData.forEach((loan: any) => {
       const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
       const total = loan.totalToCollect || loan.amount;
       const pending = total - totalPaid;
@@ -297,12 +307,12 @@ export class SeguimientoComponent implements OnInit {
   });
 
   rentabilidad = computed(() => {
-    const loans = this.loans();
-    if (loans.length === 0) return 0;
+    const loansData = this.loans();
+    if (loansData.length === 0) return 0;
     
-    const totalLoaned = loans.reduce((sum, l) => sum + l.amount, 0);
-    const totalToCollect = loans.reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0);
-    const totalCollected = this.payments().reduce((sum, p) => sum + p.amount, 0);
+    const totalLoaned = loansData.reduce((sum: number, l: any) => sum + l.amount, 0);
+    const totalToCollect = loansData.reduce((sum: number, l: any) => sum + (l.totalToCollect || l.amount), 0);
+    const totalCollected = this.payments().reduce((sum: number, p: any) => sum + p.amount, 0);
     
     if (totalLoaned === 0) return 0;
     const profit = totalCollected - totalLoaned;
@@ -310,26 +320,26 @@ export class SeguimientoComponent implements OnInit {
   });
 
   clientesActivos = computed(() => {
-    const activeLoans = this.loans().filter(loan => {
+    const activeLoans = this.loans().filter((loan: any) => {
       const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
       const total = loan.totalToCollect || loan.amount;
       return totalPaid < total;
     });
-    const uniquePersonIds = new Set(activeLoans.map(l => l.personId));
+    const uniquePersonIds = new Set(activeLoans.map((l: any) => l.personId));
     return uniquePersonIds.size;
   });
 
   clientesMorosos = computed(() => {
-    const overdueLoans = this.loans().filter(loan => loan.status === 'overdue');
-    const uniquePersonIds = new Set(overdueLoans.map(l => l.personId));
+    const overdueLoans = this.loans().filter((loan: any) => loan.status === 'overdue');
+    const uniquePersonIds = new Set(overdueLoans.map((l: any) => l.personId));
     return uniquePersonIds.size;
   });
 
   // Chart Data
   lenderChartData = computed((): ChartData<'bar'> => {
-    const lenderData = this.lenders().map(lender => {
-      const loans = this.loans().filter(l => l.lenderId === lender.id);
-      const totalLoaned = loans.reduce((sum, l) => sum + l.amount, 0);
+    const lenderData = this.lenders().map((lender: any) => {
+      const loansData = this.loans().filter((l: any) => l.lenderId === lender.id);
+      const totalLoaned = loansData.reduce((sum: number, l: any) => sum + l.amount, 0);
       return {
         name: lender.name,
         amount: totalLoaned
@@ -347,13 +357,13 @@ export class SeguimientoComponent implements OnInit {
   });
 
   routeChartData = computed((): ChartData<'doughnut'> => {
-    const routeData = this.routes().map(route => {
-      const clients = this.persons().filter(p => p.routeId === route.id);
-      const clientIds = clients.map(c => c.id);
-      const loans = this.loans().filter(l => clientIds.includes(l.personId));
+    const routeData = this.routes().map((route: any) => {
+      const clients = this.persons().filter((p: any) => p.routeId === route.id);
+      const clientIds = clients.map((c: any) => c.id);
+      const loansData = this.loans().filter((l: any) => clientIds.includes(l.personId));
       return {
         name: route.name,
-        count: loans.length
+        count: loansData.length
       };
     });
 
@@ -367,19 +377,19 @@ export class SeguimientoComponent implements OnInit {
   });
 
   routeSummaries = computed(() => {
-    return this.routes().map(route => {
-      const clients = this.persons().filter(p => p.routeId === route.id);
-      const clientIds = clients.map(c => c.id);
-      const loans = this.loans().filter(l => clientIds.includes(l.personId));
+    return this.routes().map((route: any) => {
+      const clients = this.persons().filter((p: any) => p.routeId === route.id);
+      const clientIds = clients.map((c: any) => c.id);
+      const loansData = this.loans().filter((l: any) => clientIds.includes(l.personId));
       
-      const activeLoans = loans.filter(loan => {
+      const activeLoans = loansData.filter((loan: any) => {
         const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
         const total = loan.totalToCollect || loan.amount;
         return totalPaid < total;
       });
 
-      const totalAmount = loans.reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0);
-      const collected = loans.reduce((sum, l) => sum + this.paymentService.getTotalPaidForLoan(l.id), 0);
+      const totalAmount = loansData.reduce((sum: number, l: any) => sum + (l.totalToCollect || l.amount), 0);
+      const collected = loansData.reduce((sum: number, l: any) => sum + this.paymentService.getTotalPaidForLoan(l.id), 0);
 
       return {
         routeId: route.id,

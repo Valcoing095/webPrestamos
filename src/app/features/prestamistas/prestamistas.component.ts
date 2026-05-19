@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { LenderService, RouteService } from '../../core/services';
@@ -316,10 +316,10 @@ import { Lender, Route } from '../../core/models';
   `]
 })
 export class PrestamistasComponent implements OnInit {
-  private lenderService = new LenderService();
-  private routeService = new RouteService();
-  private authService = new AuthService();
-  private formBuilder = new FormBuilder();
+  private lenderService = inject(LenderService);
+  private routeService = inject(RouteService);
+  private authService = inject(AuthService);
+  private formBuilder = inject(FormBuilder);
 
   lenders = signal<Lender[]>([]);
   routes = signal<Route[]>([]);
@@ -358,7 +358,7 @@ export class PrestamistasComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.userId = this.authService.getCurrentUserId() || '';
+    this.userId = this.authService.getUserId() || '';
     this.loadData();
   }
 
@@ -421,7 +421,7 @@ export class PrestamistasComponent implements OnInit {
       if (this.editingLender()) {
         const lender = this.editingLender()!;
         lender.update(formValue);
-        this.lenderService.update(lender);
+        this.lenderService.update(lender.id, formValue);
         this.showToast('Prestamista actualizado correctamente', 'success');
       } else {
         const newLender = new Lender({

@@ -337,13 +337,13 @@ export class PrestamosPrestamistasComponent implements OnInit {
   };
 
   lenders = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     return this.lenderService.getByUserId(userId);
   });
 
   routes = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     return this.routeService.getByUserId(userId);
   });
@@ -367,13 +367,13 @@ export class PrestamosPrestamistasComponent implements OnInit {
   });
 
   persons = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     return this.personService.getByUserId(userId);
   });
 
   loans = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     return this.loanService.getLenderLoans(userId);
   });
@@ -503,7 +503,7 @@ export class PrestamosPrestamistasComponent implements OnInit {
   }
 
   saveLoan() {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return;
 
     if (!this.form.lenderId) {

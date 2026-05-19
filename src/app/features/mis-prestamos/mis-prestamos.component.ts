@@ -281,13 +281,13 @@ export class MisPrestamosComponent implements OnInit {
   };
 
   loans = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     return this.loanService.getOwnLoans(userId);
   });
 
   persons = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     return this.personService.getByUserId(userId);
   });
@@ -393,7 +393,7 @@ export class MisPrestamosComponent implements OnInit {
   }
 
   saveLoan() {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return;
 
     try {

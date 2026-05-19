@@ -72,7 +72,7 @@ import { Payment } from '../../core/models';
                   <td class="text-success fw-medium">{{ formatCurrency(payment.amount) }}</td>
                   <td>{{ formatCurrency(getPendingForLoan(payment.loanId)) }}</td>
                   <td>
-                    <span class="badge bg-secondary">{{ payment.paymentMethod || 'Efectivo' }}</span>
+                    <span class="badge bg-secondary">Efectivo</span>
                   </td>
                   <td class="text-end">
                     <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(payment)">
@@ -198,13 +198,13 @@ export class MisPagosComponent {
   };
 
   activeLoans = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     return this.loanService.getActiveOwnLoans(userId);
   });
 
   payments = computed(() => {
-    const userId = this.authService.getCurrentUserId();
+    const userId = this.authService.getUserId();
     if (!userId) return [];
     const ownLoans = this.loanService.getOwnLoans(userId);
     const loanIds = new Set(ownLoans.map(l => l.id));
@@ -296,7 +296,6 @@ export class MisPagosComponent {
         loanId: this.form.loanId,
         amount: this.form.amount,
         date: this.form.date,
-        paymentMethod: this.form.paymentMethod as any,
         notes: this.form.notes
       });
       this.closeModal();
