@@ -16,245 +16,239 @@ import { Person } from '../../core/models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="container-fluid px-4 py-4">
-      <header class="mb-4">
-        <h1 class="h3 mb-1">Gestion de Personas (Clientes)</h1>
-        <p class="text-muted mb-0">Administra tus deudores</p>
-      </header>
-      
-      <!-- Formulario -->
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent">
-          <h5 class="card-title mb-0">{{ isEditing() ? 'Editar Persona' : 'Agregar Nueva Persona' }}</h5>
+    <div class="space-y-6 animate-fadeIn">
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-semibold text-slate-800">Clientes</h1>
+          <p class="text-sm text-slate-500 mt-1">Administra tus deudores</p>
         </div>
-        <div class="card-body">
-          <form (ngSubmit)="onSubmit()">
-            <div class="row g-3">
-              <div class="col-12 col-md-3">
-                <label for="person-name" class="form-label">Nombre Completo *</label>
-                <input
-                  type="text"
-                  id="person-name"
-                  [(ngModel)]="formData.name"
-                  name="name"
-                  class="form-control"
-                  placeholder="Nombre de la persona"
-                  required
-                />
-              </div>
-              <div class="col-12 col-md-3">
-                <label for="person-phone" class="form-label">Telefono</label>
-                <input
-                  type="tel"
-                  id="person-phone"
-                  [(ngModel)]="formData.phone"
-                  name="phone"
-                  class="form-control"
-                  placeholder="Opcional"
-                />
-              </div>
-              <div class="col-12 col-md-3">
-                <label for="person-address" class="form-label">Direccion</label>
-                <input
-                  type="text"
-                  id="person-address"
-                  [(ngModel)]="formData.address"
-                  name="address"
-                  class="form-control"
-                  placeholder="Opcional"
-                />
-              </div>
-              <div class="col-12 col-md-3">
-                <label for="person-route" class="form-label">Ruta Asignada</label>
-                <select id="person-route" [(ngModel)]="formData.routeId" name="routeId" class="form-select">
-                  <option value="">Sin ruta</option>
-                  @for (route of routes(); track route.id) {
-                    <option [value]="route.id">{{ route.name }}</option>
-                  }
-                </select>
-              </div>
-            </div>
-            <div class="mt-3">
-              <label for="person-notes" class="form-label">Notas</label>
-              <input
-                type="text"
-                id="person-notes"
-                [(ngModel)]="formData.notes"
-                name="notes"
-                class="form-control"
-                placeholder="Notas adicionales..."
-              />
-            </div>
-            <div class="mt-3">
-              <button type="submit" class="btn btn-primary me-2">
-                {{ isEditing() ? 'Actualizar Persona' : 'Agregar Persona' }}
-              </button>
-              @if (isEditing()) {
-                <button type="button" class="btn btn-secondary" (click)="cancelEdit()">Cancelar</button>
-              }
-            </div>
-          </form>
-        </div>
+        <button 
+          class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+          (click)="showAddModal.set(true)"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Nuevo Cliente
+        </button>
       </div>
 
-      <!-- Buscador -->
-      <div class="mb-3">
-        <input type="text" class="form-control" placeholder="Buscar por nombre..." [(ngModel)]="searchTerm" style="max-width: 300px;" />
+      <!-- Search -->
+      <div class="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
+        <input 
+          type="text" 
+          class="w-full px-4 py-2.5 bg-slate-50 border-0 rounded-lg text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+          placeholder="Buscar clientes..."
+          [(ngModel)]="searchTerm"
+        >
       </div>
 
-      <!-- Lista de Personas -->
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0">Personas Registradas</h5>
-          <span class="badge bg-primary">{{ filteredPersons().length }}</span>
-        </div>
-        <div class="card-body p-0">
-          <div class="row g-3 p-3">
-            @for (person of filteredPersons(); track person.id) {
-              <div class="col-md-6 col-lg-4">
-                <div class="card h-100 border">
-                  <div class="card-body">
-                    <h5 class="card-title">{{ person.name }}</h5>
-                    @if (person.phone) {
-                      <p class="card-text text-muted small mb-1">Tel: {{ person.phone }}</p>
-                    }
-                    @if (person.address) {
-                      <p class="card-text text-muted small mb-1">Dir: {{ person.address }}</p>
-                    }
-                    @if (person.routeId) {
-                      <p class="card-text small mb-1">
-                        <span class="badge bg-info">{{ getRouteName(person.routeId) }}</span>
-                      </p>
-                    }
-                    @if (person.notes) {
-                      <p class="card-text text-muted small mb-2">{{ person.notes }}</p>
-                    }
-                    <p class="card-text">
-                      <span class="badge bg-secondary">{{ getActiveLoansCount(person.id) }} prestamo(s) activo(s)</span>
-                    </p>
+      <!-- Clients Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @for (person of filteredPersons(); track person.id) {
+          <div class="bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+            <div class="p-5">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                    <span class="text-sm font-semibold text-slate-600">{{ person.name.charAt(0).toUpperCase() }}</span>
                   </div>
-                  <div class="card-footer bg-transparent d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-primary" (click)="viewLoans(person)">
-                      Ver Prestamos
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" (click)="editPerson(person)">
-                      Editar
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(person)">
-                      Eliminar
-                    </button>
+                  <div>
+                    <h3 class="text-sm font-semibold text-slate-800">{{ person.name }}</h3>
+                    @if (person.phone) {
+                      <p class="text-xs text-slate-500">{{ person.phone }}</p>
+                    }
                   </div>
                 </div>
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full" 
+                      [class]="getActiveLoansCount(person.id) > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'">
+                  {{ getActiveLoansCount(person.id) }} activo(s)
+                </span>
               </div>
-            } @empty {
-              <div class="text-center text-muted p-5">
-                <p class="mb-0">No hay personas registradas.</p>
-                <p class="small">Agrega tu primera persona!</p>
-              </div>
-            }
+              
+              @if (person.address) {
+                <p class="text-xs text-slate-500 mt-3 flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  </svg>
+                  {{ person.address }}
+                </p>
+              }
+              
+              @if (person.routeId) {
+                <div class="mt-3">
+                  <span class="inline-flex px-2 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 rounded">{{ getRouteName(person.routeId) }}</span>
+                </div>
+              }
+            </div>
+            <div class="flex items-center border-t border-slate-50">
+              <button class="flex-1 px-4 py-3 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors" (click)="viewLoans(person)">Ver Prestamos</button>
+              <button class="flex-1 px-4 py-3 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors border-l border-slate-50" (click)="editPerson(person)">Editar</button>
+              <button class="flex-1 px-4 py-3 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors border-l border-slate-50" (click)="confirmDelete(person)">Eliminar</button>
+            </div>
           </div>
-        </div>
+        } @empty {
+          <div class="col-span-full bg-white rounded-xl border border-slate-100 p-12 text-center">
+            <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+            <p class="text-sm text-slate-500">No hay clientes registrados</p>
+          </div>
+        }
       </div>
     </div>
 
-    <!-- Modal de Edicion -->
+    <!-- Add Modal -->
+    @if (showAddModal()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" (click)="showAddModal.set(false)"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md transform animate-scaleIn">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h3 class="text-lg font-semibold text-slate-800">Nuevo Cliente</h3>
+            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-lg" (click)="showAddModal.set(false)">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="px-6 py-5 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Nombre</label>
+              <input type="text" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="formData.name" placeholder="Nombre completo">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefono</label>
+              <input type="tel" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="formData.phone" placeholder="Opcional">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Direccion</label>
+              <input type="text" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="formData.address" placeholder="Opcional">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Ruta</label>
+              <select class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="formData.routeId">
+                <option value="">Sin ruta</option>
+                @for (route of routes(); track route.id) {
+                  <option [value]="route.id">{{ route.name }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Notas</label>
+              <input type="text" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="formData.notes" placeholder="Notas adicionales">
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
+            <button class="px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" (click)="showAddModal.set(false)">Cancelar</button>
+            <button class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors" (click)="onSubmit()">Guardar</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Edit Modal -->
     @if (showEditModal()) {
-      <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)" (click)="closeModal($event)">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Editar Persona</h5>
-              <button type="button" class="btn-close" (click)="closeEditModal()"></button>
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" (click)="closeEditModal()"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md transform animate-scaleIn">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h3 class="text-lg font-semibold text-slate-800">Editar Cliente</h3>
+            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-lg" (click)="closeEditModal()">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="px-6 py-5 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Nombre</label>
+              <input type="text" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="editData.name" placeholder="Nombre completo">
             </div>
-            <div class="modal-body">
-              <form (ngSubmit)="saveEdit()">
-                <div class="mb-3">
-                  <label for="edit-name" class="form-label">Nombre</label>
-                  <input type="text" id="edit-name" [(ngModel)]="editData.name" name="editName" class="form-control" required />
-                </div>
-                <div class="mb-3">
-                  <label for="edit-phone" class="form-label">Telefono</label>
-                  <input type="tel" id="edit-phone" [(ngModel)]="editData.phone" name="editPhone" class="form-control" />
-                </div>
-                <div class="mb-3">
-                  <label for="edit-address" class="form-label">Direccion</label>
-                  <input type="text" id="edit-address" [(ngModel)]="editData.address" name="editAddress" class="form-control" />
-                </div>
-                <div class="mb-3">
-                  <label for="edit-route" class="form-label">Ruta</label>
-                  <select id="edit-route" [(ngModel)]="editData.routeId" name="editRouteId" class="form-select">
-                    <option value="">Sin ruta</option>
-                    @for (route of routes(); track route.id) {
-                      <option [value]="route.id">{{ route.name }}</option>
-                    }
-                  </select>
-                </div>
-                <div class="mb-3">
-                  <label for="edit-notes" class="form-label">Notas</label>
-                  <input type="text" id="edit-notes" [(ngModel)]="editData.notes" name="editNotes" class="form-control" />
-                </div>
-                <div class="d-flex gap-2">
-                  <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                  <button type="button" class="btn btn-secondary" (click)="closeEditModal()">Cancelar</button>
-                </div>
-              </form>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefono</label>
+              <input type="tel" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="editData.phone" placeholder="Opcional">
             </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Direccion</label>
+              <input type="text" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="editData.address" placeholder="Opcional">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Ruta</label>
+              <select class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="editData.routeId">
+                <option value="">Sin ruta</option>
+                @for (route of routes(); track route.id) {
+                  <option [value]="route.id">{{ route.name }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">Notas</label>
+              <input type="text" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" [(ngModel)]="editData.notes" placeholder="Notas adicionales">
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
+            <button class="px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" (click)="closeEditModal()">Cancelar</button>
+            <button class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors" (click)="saveEdit()">Actualizar</button>
           </div>
         </div>
       </div>
     }
 
-    <!-- Modal de Confirmacion -->
+    <!-- Delete Confirmation -->
     @if (showConfirmModal()) {
-      <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)" (click)="closeConfirmModal()">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Confirmar</h5>
-              <button type="button" class="btn-close" (click)="closeConfirmModal()"></button>
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" (click)="closeConfirmModal()"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm transform animate-scaleIn">
+          <div class="p-6 text-center">
+            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
             </div>
-            <div class="modal-body">
-              <p>Eliminar a {{ personToDelete()?.name }}?</p>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeConfirmModal()">Cancelar</button>
-              <button type="button" class="btn btn-danger" (click)="deletePerson()">Confirmar</button>
+            <h3 class="text-lg font-semibold text-slate-800 mb-2">Eliminar Cliente</h3>
+            <p class="text-sm text-slate-500 mb-6">Eliminar a {{ personToDelete()?.name }}?</p>
+            <div class="flex gap-3">
+              <button class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors" (click)="closeConfirmModal()">Cancelar</button>
+              <button class="flex-1 px-4 py-2.5 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors" (click)="deletePerson()">Eliminar</button>
             </div>
           </div>
         </div>
       </div>
     }
 
-    <!-- Modal de Prestamos -->
+    <!-- Loans Modal -->
     @if (showLoansModal()) {
-      <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)" (click)="closeLoansModal($event)">
-        <div class="modal-dialog modal-lg">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Prestamos de {{ selectedPerson()?.name }}</h5>
-              <button type="button" class="btn-close" (click)="closeLoansModal()"></button>
-            </div>
-            <div class="modal-body">
-              @for (loan of personLoans(); track loan.id) {
-                <div class="card mb-2">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 class="mb-1">{{ formatCurrency(loan.amount) }}</h6>
-                        <small class="text-muted">{{ formatDate(loan.date) }} - {{ getLoanStatus(loan) }}</small>
-                      </div>
-                      <span class="badge" [class]="isLoanCompleted(loan) ? 'bg-success' : 'bg-warning'">
-                        {{ getLoanStatus(loan) }}
-                      </span>
-                    </div>
-                  </div>
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm" (click)="closeLoansModal()"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-lg transform animate-scaleIn max-h-[80vh] overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h3 class="text-lg font-semibold text-slate-800">Prestamos de {{ selectedPerson()?.name }}</h3>
+            <button class="p-2 text-slate-400 hover:text-slate-600 rounded-lg" (click)="closeLoansModal()">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="p-6 overflow-y-auto max-h-96 space-y-3">
+            @for (loan of personLoans(); track loan.id) {
+              <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <p class="text-sm font-medium text-slate-800">{{ formatCurrency(loan.amount) }}</p>
+                  <p class="text-xs text-slate-500">{{ formatDate(loan.date) }}</p>
                 </div>
-              } @empty {
-                <div class="text-center text-muted p-3">
-                  <p>No hay prestamos registrados.</p>
-                </div>
-              }
-            </div>
+                <span class="inline-flex px-2.5 py-1 text-xs font-medium rounded-full" 
+                      [class]="isLoanCompleted(loan) ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
+                  {{ getLoanStatus(loan) }}
+                </span>
+              </div>
+            } @empty {
+              <div class="text-center py-8">
+                <p class="text-sm text-slate-500">Sin prestamos registrados</p>
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -262,11 +256,9 @@ import { Person } from '../../core/models';
 
     <!-- Toast -->
     @if (toast()) {
-      <div class="toast show position-fixed bottom-0 end-0 m-3" [class]="'bg-' + (toast()?.type === 'success' ? 'success' : 'danger') + ' text-white'">
-        <div class="toast-body d-flex justify-content-between align-items-center">
-          {{ toast()?.message }}
-          <button type="button" class="btn-close btn-close-white" (click)="clearToast()"></button>
-        </div>
+      <div class="fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg text-sm font-medium z-50 animate-slideUp"
+           [class]="toast()?.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'">
+        {{ toast()?.message }}
       </div>
     }
   `,
@@ -281,6 +273,7 @@ export class PersonasComponent implements OnInit {
   editData: any = {};
   searchTerm = '';
   isEditing = signal(false);
+  showAddModal = signal(false);
   showEditModal = signal(false);
   showConfirmModal = signal(false);
   showLoansModal = signal(false);
@@ -342,8 +335,7 @@ export class PersonasComponent implements OnInit {
     this.showLoansModal.set(true);
   }
 
-  closeLoansModal(event?: MouseEvent): void {
-    if (event && !(event.target as HTMLElement).classList.contains('modal')) return;
+  closeLoansModal(): void {
     this.showLoansModal.set(false);
     this.selectedPerson.set(null);
   }
@@ -378,8 +370,9 @@ export class PersonasComponent implements OnInit {
         userId,
       });
 
-      this.showToast('Persona agregada', 'success');
-      this.formData = { name: '', phone: '', address: '', notes: '', routeId: '' };
+  this.showToast('Persona agregada', 'success');
+  this.formData = { name: '', phone: '', address: '', notes: '', routeId: '' };
+  this.showAddModal.set(false);
     } catch (error: any) {
       this.showToast(error.message, 'error');
     }
