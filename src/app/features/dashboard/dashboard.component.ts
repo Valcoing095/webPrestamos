@@ -9,215 +9,225 @@ import { Loan, Payment, Lender, Person } from '../../core/models';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="container-fluid p-4">
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <h1 class="h3">Dashboard</h1>
-          <p class="text-muted">Resumen de tu cartera de préstamos</p>
+    <div class="space-y-6 animate-fadeIn">
+      <!-- Header -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-semibold text-slate-800">Dashboard</h1>
+          <p class="text-sm text-slate-500 mt-1">Resumen de tu cartera de prestamos</p>
         </div>
-        <div class="col-md-6 text-end">
-          <small class="text-muted">Última actualización: {{ getCurrentDate() }}</small>
+        <div class="text-sm text-slate-400">
+          {{ getCurrentDate() }}
         </div>
       </div>
 
       <!-- KPIs Principales -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-3">
-          <div class="card border-0 shadow-sm bg-primary text-white">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Capital Total Desembolsado</h6>
-              <h3 class="mb-2">{{ formatCurrency(totalLoaned()) }}</h3>
-              <small class="opacity-75">Incluye gestion propia y prestamistas</small>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
             </div>
+            <span class="text-sm font-medium text-slate-500">Capital Total</span>
           </div>
+          <p class="text-2xl font-bold text-slate-800">{{ formatCurrency(totalLoaned()) }}</p>
+          <p class="text-xs text-slate-400 mt-1">Desembolsado total</p>
         </div>
-        <div class="col-md-3">
-          <div class="card border-0 shadow-sm bg-success text-white">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Capital Recuperado</h6>
-              <h3 class="mb-2">{{ formatCurrency(totalCollected()) }}</h3>
-              <small class="opacity-75">{{ collectPercentage() }}% recuperado</small>
+
+        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
             </div>
+            <span class="text-sm font-medium text-slate-500">Recuperado</span>
           </div>
+          <p class="text-2xl font-bold text-slate-800">{{ formatCurrency(totalCollected()) }}</p>
+          <p class="text-xs text-emerald-500 mt-1">{{ collectPercentage() }}% del total</p>
         </div>
-        <div class="col-md-3">
-          <div class="card border-0 shadow-sm bg-warning text-white">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Capital Pendiente</h6>
-              <h3 class="mb-2">{{ formatCurrency(pendingCapital()) }}</h3>
-              <small class="opacity-75">Por cobrar</small>
+
+        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
             </div>
+            <span class="text-sm font-medium text-slate-500">Pendiente</span>
           </div>
+          <p class="text-2xl font-bold text-slate-800">{{ formatCurrency(pendingCapital()) }}</p>
+          <p class="text-xs text-slate-400 mt-1">Por cobrar</p>
         </div>
-        <div class="col-md-3">
-          <div class="card border-0 shadow-sm bg-info text-white">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Préstamos Activos</h6>
-              <h3 class="mb-2">{{ activeLoansCount() }}</h3>
-              <small class="opacity-75">En proceso de cobro</small>
+
+        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+              <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
             </div>
+            <span class="text-sm font-medium text-slate-500">Prestamos Activos</span>
           </div>
+          <p class="text-2xl font-bold text-slate-800">{{ activeLoansCount() }}</p>
+          <p class="text-xs text-slate-400 mt-1">En proceso</p>
         </div>
       </div>
 
       <!-- Secciones Resumen -->
-      <div class="row g-4 mb-4">
-        <!-- Gestión Propia -->
-        <div class="col-md-6">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-light border-bottom">
-              <h5 class="card-title mb-0">Gestión Propia</h5>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Gestion Propia -->
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100">
+            <h3 class="text-base font-semibold text-slate-800">Gestion Propia</h3>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="bg-slate-50 rounded-lg p-4 text-center">
+                <p class="text-2xl font-bold text-blue-600">{{ ownLoansCount() }}</p>
+                <p class="text-xs text-slate-500 mt-1">Prestamos</p>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-4 text-center">
+                <p class="text-2xl font-bold text-emerald-600">{{ formatCurrency(ownCapital()) }}</p>
+                <p class="text-xs text-slate-500 mt-1">Capital</p>
+              </div>
             </div>
-            <div class="card-body">
-              <div class="row text-center mb-3">
-                <div class="col-6">
-                  <div class="bg-light rounded p-3 mb-3">
-                    <div class="h4 mb-1 text-primary">{{ ownLoansCount() }}</div>
-                    <small class="text-muted">Préstamos Activos</small>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <div class="bg-light rounded p-3 mb-3">
-                    <div class="h4 mb-1 text-success">{{ formatCurrency(ownCapital()) }}</div>
-                    <small class="text-muted">Capital Desembolsado</small>
-                  </div>
-                </div>
+            
+            <div class="space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Progreso de recuperacion</span>
+                <span class="font-medium text-slate-700">{{ ownCollectPercentage() }}%</span>
               </div>
-              <div class="progress mb-3" style="height: 25px;">
+              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div 
-                  class="progress-bar bg-success" 
+                  class="h-full bg-emerald-500 rounded-full transition-all duration-500"
                   [style.width.%]="ownCollectPercentage()"
-                  role="progressbar"
-                >
-                  {{ ownCollectPercentage() }}%
-                </div>
+                ></div>
               </div>
-              <small class="text-muted">{{ formatCurrency(ownCollected()) }} recuperados de {{ formatCurrency(ownCapital()) }}</small>
+              <p class="text-xs text-slate-400">{{ formatCurrency(ownCollected()) }} de {{ formatCurrency(ownCapital()) }}</p>
             </div>
           </div>
         </div>
 
         <!-- Prestamistas -->
-        <div class="col-md-6">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-light border-bottom">
-              <h5 class="card-title mb-0">Gestión de Prestamistas</h5>
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100">
+            <h3 class="text-base font-semibold text-slate-800">Gestion de Prestamistas</h3>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="bg-slate-50 rounded-lg p-4 text-center">
+                <p class="text-2xl font-bold text-blue-600">{{ lenderLoansCount() }}</p>
+                <p class="text-xs text-slate-500 mt-1">Prestamos</p>
+              </div>
+              <div class="bg-slate-50 rounded-lg p-4 text-center">
+                <p class="text-2xl font-bold text-amber-600">{{ lendersCount() }}</p>
+                <p class="text-xs text-slate-500 mt-1">Prestamistas</p>
+              </div>
             </div>
-            <div class="card-body">
-              <div class="row text-center mb-3">
-                <div class="col-6">
-                  <div class="bg-light rounded p-3 mb-3">
-                    <div class="h4 mb-1 text-info">{{ lenderLoansCount() }}</div>
-                    <small class="text-muted">Préstamos Gestionados</small>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <div class="bg-light rounded p-3 mb-3">
-                    <div class="h4 mb-1 text-warning">{{ lendersCount() }}</div>
-                    <small class="text-muted">Prestamistas Activos</small>
-                  </div>
-                </div>
+            
+            <div class="space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-500">Progreso de recuperacion</span>
+                <span class="font-medium text-slate-700">{{ lenderCollectPercentage() }}%</span>
               </div>
-              <div class="progress mb-3" style="height: 25px;">
+              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div 
-                  class="progress-bar bg-info" 
+                  class="h-full bg-blue-500 rounded-full transition-all duration-500"
                   [style.width.%]="lenderCollectPercentage()"
-                  role="progressbar"
-                >
-                  {{ lenderCollectPercentage() }}%
-                </div>
+                ></div>
               </div>
-              <small class="text-muted">{{ formatCurrency(lenderCollected()) }} recuperados de {{ formatCurrency(lenderCapital()) }}</small>
+              <p class="text-xs text-slate-400">{{ formatCurrency(lenderCollected()) }} de {{ formatCurrency(lenderCapital()) }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Tabla de Últimos Pagos -->
-      <div class="row">
-        <div class="col-lg-8">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-light border-bottom">
-              <h5 class="card-title mb-0">Últimos Pagos Registrados</h5>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Préstamo</th>
-                    <th>Monto</th>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let payment of recentPayments()">
-                    <td><strong>{{ getPersonNameForLoan(payment.loanId) }}</strong></td>
-                    <td><span class="badge bg-secondary">{{ getLoanId(payment.loanId) }}</span></td>
-                    <td class="text-end">{{ formatCurrency(payment.amount) }}</td>
-                    <td>{{ formatDate(payment.date) }}</td>
-                    <td>
-                      <span class="badge bg-info">Pago</span>
-                    </td>
-                  </tr>
-                  <tr *ngIf="recentPayments().length === 0">
-                    <td colspan="5" class="text-center text-muted py-3">No hay pagos registrados</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+      <!-- Tabla y Estado -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Ultimos Pagos -->
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100">
+            <h3 class="text-base font-semibold text-slate-800">Ultimos Pagos</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-slate-50/80">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Prestamo</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Monto</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                <tr *ngFor="let payment of recentPayments()" class="hover:bg-slate-50/50 transition-colors">
+                  <td class="px-6 py-4 text-sm font-medium text-slate-800">{{ getPersonNameForLoan(payment.loanId) }}</td>
+                  <td class="px-6 py-4">
+                    <span class="inline-flex px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded">
+                      {{ getLoanId(payment.loanId) }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-right font-medium text-slate-800">{{ formatCurrency(payment.amount) }}</td>
+                  <td class="px-6 py-4 text-sm text-slate-500">{{ formatDate(payment.date) }}</td>
+                </tr>
+                <tr *ngIf="recentPayments().length === 0">
+                  <td colspan="4" class="px-6 py-8 text-center text-sm text-slate-400">No hay pagos registrados</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Estadísticas por Tipo -->
-        <div class="col-lg-4">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-light border-bottom">
-              <h5 class="card-title mb-0">Estado de Préstamos</h5>
+        <!-- Estado de Prestamos -->
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100">
+            <h3 class="text-base font-semibold text-slate-800">Estado</h3>
+          </div>
+          <div class="p-6 space-y-5">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-slate-600">Activos</span>
+                <span class="text-sm font-semibold text-blue-600">{{ activeLoansCount() }}</span>
+              </div>
+              <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  class="h-full bg-blue-500 rounded-full transition-all duration-300"
+                  [style.width.%]="totalLoansCount() > 0 ? (activeLoansCount() / totalLoansCount() * 100) : 0"
+                ></div>
+              </div>
             </div>
-            <div class="card-body">
-              <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span>Activos</span>
-                  <span class="badge bg-info">{{ activeLoansCount() }}</span>
-                </div>
-                <div class="progress" style="height: 10px;">
-                  <div 
-                    class="progress-bar bg-info" 
-                    [style.width.%]="(activeLoansCount() / totalLoansCount() * 100)"
-                  ></div>
-                </div>
-              </div>
 
-              <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span>Completados</span>
-                  <span class="badge bg-success">{{ completedLoansCount() }}</span>
-                </div>
-                <div class="progress" style="height: 10px;">
-                  <div 
-                    class="progress-bar bg-success" 
-                    [style.width.%]="(completedLoansCount() / totalLoansCount() * 100)"
-                  ></div>
-                </div>
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-slate-600">Completados</span>
+                <span class="text-sm font-semibold text-emerald-600">{{ completedLoansCount() }}</span>
               </div>
-
-              <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span>Vencidos</span>
-                  <span class="badge bg-danger">{{ overdueLoansCount() }}</span>
-                </div>
-                <div class="progress" style="height: 10px;">
-                  <div 
-                    class="progress-bar bg-danger" 
-                    [style.width.%]="(overdueLoansCount() / totalLoansCount() * 100)"
-                  ></div>
-                </div>
+              <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  class="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  [style.width.%]="totalLoansCount() > 0 ? (completedLoansCount() / totalLoansCount() * 100) : 0"
+                ></div>
               </div>
+            </div>
 
-              <hr />
-              <small class="text-muted">Total de préstamos: {{ totalLoansCount() }}</small>
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-slate-600">Vencidos</span>
+                <span class="text-sm font-semibold text-red-600">{{ overdueLoansCount() }}</span>
+              </div>
+              <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  class="h-full bg-red-500 rounded-full transition-all duration-300"
+                  [style.width.%]="totalLoansCount() > 0 ? (overdueLoansCount() / totalLoansCount() * 100) : 0"
+                ></div>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100">
+              <p class="text-sm text-slate-500">Total: <span class="font-semibold text-slate-700">{{ totalLoansCount() }} prestamos</span></p>
             </div>
           </div>
         </div>
@@ -227,8 +237,6 @@ import { Loan, Payment, Lender, Person } from '../../core/models';
   styles: [`
     :host {
       display: block;
-      background-color: #f5f5f5;
-      min-height: 100vh;
     }
   `]
 })

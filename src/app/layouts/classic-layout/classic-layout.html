@@ -1,93 +1,156 @@
 <!-- /src/app/layouts/classic-layout/classic-layout.html -->
-<div class="layout">
+<div class="flex h-screen bg-slate-50">
   <!-- Sidebar -->
-  <nav class="sidebar" [class.open]="sidebarOpen">
-    <div class="p-3 border-bottom border-secondary">
-      <h4 class="text-white mb-0">Prestamos App</h4>
+  <aside 
+    class="fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 transform transition-transform duration-300 ease-out lg:translate-x-0 lg:static"
+    [class.-translate-x-full]="!sidebarOpen"
+    [class.translate-x-0]="sidebarOpen"
+  >
+    <!-- Logo -->
+    <div class="flex items-center h-16 px-6 border-b border-slate-800">
+      <h1 class="text-lg font-semibold text-white tracking-tight">Prestamos</h1>
     </div>
     
-    <ul class="nav flex-column py-2">
+    <!-- Navigation -->
+    <nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
       <!-- Dashboard -->
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/dashboard" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherHome" class="me-2"></ng-icon><span>Dashboard</span>
-        </a>
-      </li>
+      <a 
+        routerLink="/dashboard" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherHome" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Dashboard</span>
+      </a>
       
       <!-- Seccion: Gestion Propia -->
-      <li class="nav-section">
-        <span class="nav-section-title">Gestion Propia</span>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/mis-prestamos" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherDollarSign" class="me-2"></ng-icon><span>Mis Prestamos</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/mis-pagos" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherCreditCard" class="me-2"></ng-icon><span>Mis Pagos</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/clientes" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherUsers" class="me-2"></ng-icon><span>Clientes</span>
-        </a>
-      </li>
+      <div class="pt-6 pb-2">
+        <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Gestion Propia</p>
+      </div>
+      
+      <a 
+        routerLink="/mis-prestamos" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherDollarSign" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Mis Prestamos</span>
+      </a>
+      
+      <a 
+        routerLink="/mis-pagos" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherCreditCard" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Mis Pagos</span>
+      </a>
+      
+      <a 
+        routerLink="/clientes" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherUsers" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Clientes</span>
+      </a>
       
       <!-- Seccion: Prestamistas y Rutas -->
-      <li class="nav-section">
-        <span class="nav-section-title">Prestamistas y Rutas</span>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/prestamistas" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherUser" class="me-2"></ng-icon><span>Prestamistas</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/rutas" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherMap" class="me-2"></ng-icon><span>Rutas</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/prestamos-prestamistas" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherDollarSign" class="me-2"></ng-icon><span>Prestamos por Ruta</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/liquidacion" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherFileText" class="me-2"></ng-icon><span>Liquidacion</span>
-        </a>
-      </li>
+      <div class="pt-6 pb-2">
+        <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Prestamistas</p>
+      </div>
       
-      <!-- Seccion: Seguimiento -->
-      <li class="nav-section">
-        <span class="nav-section-title">Reportes</span>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" routerLink="/seguimiento" routerLinkActive="active" (click)="closeIfMobile()">
-          <ng-icon name="featherTrendingUp" class="me-2"></ng-icon><span>Seguimiento</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
+      <a 
+        routerLink="/prestamistas" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherUser" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Prestamistas</span>
+      </a>
+      
+      <a 
+        routerLink="/rutas" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherMap" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Rutas</span>
+      </a>
+      
+      <a 
+        routerLink="/prestamos-prestamistas" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherDollarSign" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Por Ruta</span>
+      </a>
+      
+      <a 
+        routerLink="/liquidacion" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherFileText" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Liquidacion</span>
+      </a>
+      
+      <!-- Seccion: Reportes -->
+      <div class="pt-6 pb-2">
+        <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Reportes</p>
+      </div>
+      
+      <a 
+        routerLink="/seguimiento" 
+        routerLinkActive="bg-slate-800 text-white"
+        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
+        (click)="closeIfMobile()"
+      >
+        <ng-icon name="featherTrendingUp" class="text-lg"></ng-icon>
+        <span class="text-sm font-medium">Seguimiento</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Overlay for mobile -->
+  <div 
+    *ngIf="sidebarOpen" 
+    class="fixed inset-0 z-20 bg-slate-900/50 backdrop-blur-sm lg:hidden"
+    (click)="closeSidebar()"
+  ></div>
 
   <!-- Main Content -->
-  <div class="main" [class.sidebar-open]="sidebarOpen">
+  <div class="flex-1 flex flex-col min-h-screen lg:ml-0">
     <!-- Top Navbar -->
-    <nav class="navbar navbar-light bg-white border-bottom">
-      <div class="container-fluid">
-        <button class="btn btn-link" (click)="toggleSidebar($event)">
-          <ng-icon name="featherMenu"></ng-icon>
-        </button>
-        <div class="d-flex align-items-center ms-auto">
-          <span class="me-3">Usuario</span>
-          <ng-icon name="featherUser"></ng-icon>
+    <header class="sticky top-0 z-10 flex items-center h-16 px-4 bg-white/80 backdrop-blur-md border-b border-slate-100">
+      <button 
+        class="p-2 -ml-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors lg:hidden"
+        (click)="toggleSidebar($event)"
+      >
+        <ng-icon name="featherMenu" class="text-xl"></ng-icon>
+      </button>
+      
+      <div class="flex-1"></div>
+      
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium text-slate-600">Usuario</span>
+        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+          <ng-icon name="featherUser" class="text-slate-500"></ng-icon>
         </div>
       </div>
-    </nav>
+    </header>
 
     <!-- Page Content -->
-    <main class="p-3 p-md-4">
+    <main class="flex-1 p-4 md:p-6 lg:p-8">
       <router-outlet></router-outlet>
     </main>
   </div>
