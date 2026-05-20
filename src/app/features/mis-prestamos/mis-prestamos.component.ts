@@ -255,6 +255,7 @@ export class MisPrestamosComponent implements OnInit {
     personId: '',
     date: new Date().toISOString().split('T')[0],
     amount: 0,
+    interest: 0,
     totalToCollect: 0,
     paymentFrequency: 'monthly' as PaymentFrequency,
     notes: ''
@@ -346,6 +347,7 @@ export class MisPrestamosComponent implements OnInit {
       personId: loan.personId,
       date: loan.date,
       amount: loan.amount,
+      interest: loan.interest,
       totalToCollect: loan.totalToCollect,
       paymentFrequency: loan.paymentFrequency,
       notes: loan.notes
@@ -364,6 +366,7 @@ export class MisPrestamosComponent implements OnInit {
       personId: '',
       date: new Date().toISOString().split('T')[0],
       amount: 0,
+      interest: 0,
       totalToCollect: 0,
       paymentFrequency: 'monthly',
       notes: ''
