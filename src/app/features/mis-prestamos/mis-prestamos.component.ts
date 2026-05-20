@@ -194,15 +194,11 @@ import { Loan, Person, PaymentFrequency } from '../../core/models';
                   <label class="form-label">Fecha *</label>
                   <input type="date" class="form-control" [(ngModel)]="form.date" required>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                   <label class="form-label">Monto Prestado *</label>
                   <input type="number" class="form-control" [(ngModel)]="form.amount" min="0" required>
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label">Interes (%)</label>
-                  <input type="number" class="form-control" [(ngModel)]="form.interest" min="0">
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                   <label class="form-label">Total a Cobrar *</label>
                   <input type="number" class="form-control" [(ngModel)]="form.totalToCollect" min="0" required>
                 </div>
@@ -274,7 +270,6 @@ export class MisPrestamosComponent implements OnInit {
     personId: '',
     date: new Date().toISOString().split('T')[0],
     amount: 0,
-    interest: 0,
     totalToCollect: 0,
     paymentFrequency: 'monthly' as PaymentFrequency,
     notes: ''
@@ -366,7 +361,6 @@ export class MisPrestamosComponent implements OnInit {
       personId: loan.personId,
       date: loan.date,
       amount: loan.amount,
-      interest: loan.interest,
       totalToCollect: loan.totalToCollect,
       paymentFrequency: loan.paymentFrequency,
       notes: loan.notes
@@ -385,7 +379,6 @@ export class MisPrestamosComponent implements OnInit {
       personId: '',
       date: new Date().toISOString().split('T')[0],
       amount: 0,
-      interest: 0,
       totalToCollect: 0,
       paymentFrequency: 'monthly',
       notes: ''
