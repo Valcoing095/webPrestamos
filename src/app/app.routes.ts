@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, loginGuard } from './guards/auth.guard';
+import { authGuard, loginGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -22,21 +22,61 @@ export const routes: Routes = [
     loadComponent: () => import('./layouts/classic-layout/classic-layout').then(m => m.ClassicLayout),
     canActivate: [authGuard],
     children: [
+      // Dashboard
       {
         path: 'dashboard',
-        loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent)
+        loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+      },
+      // Gestion Propia
+      {
+        path: 'mis-prestamos',
+        loadComponent: () => import('./features/mis-prestamos/mis-prestamos.component').then(m => m.MisPrestamosComponent)
       },
       {
+        path: 'mis-pagos',
+        loadComponent: () => import('./features/mis-pagos/mis-pagos.component').then(m => m.MisPagosComponent)
+      },
+      {
+        path: 'clientes',
+        loadComponent: () => import('./features/personas/personas.component').then(m => m.PersonasComponent)
+      },
+      // Prestamistas y Rutas
+      {
+        path: 'prestamistas',
+        loadComponent: () => import('./features/prestamistas/prestamistas.component').then(m => m.PrestamistasComponent)
+      },
+      {
+        path: 'rutas',
+        loadComponent: () => import('./features/rutas/rutas.component').then(m => m.RutasComponent)
+      },
+      {
+        path: 'prestamos-prestamistas',
+        loadComponent: () => import('./features/prestamos-prestamistas/prestamos-prestamistas.component').then(m => m.PrestamosPrestamistasComponent)
+      },
+      {
+        path: 'liquidacion',
+        loadComponent: () => import('./features/liquidacion/liquidacion.component').then(m => m.LiquidacionComponent)
+      },
+      // Reportes
+      {
+        path: 'seguimiento',
+        loadComponent: () => import('./features/seguimiento/seguimiento.component').then(m => m.SeguimientoComponent)
+      },
+      // Legacy redirects
+      {
         path: 'personas',
-        loadComponent: () => import('./components/personas/personas.component').then(m => m.PersonasComponent)
+        redirectTo: 'clientes',
+        pathMatch: 'full'
       },
       {
         path: 'prestamos',
-        loadComponent: () => import('./components/prestamos/prestamos.component').then(m => m.PrestamosComponent)
+        redirectTo: 'mis-prestamos',
+        pathMatch: 'full'
       },
       {
         path: 'pagos',
-        loadComponent: () => import('./components/pagos/pagos.component').then(m => m.PagosComponent)
+        redirectTo: 'mis-pagos',
+        pathMatch: 'full'
       }
     ]
   },

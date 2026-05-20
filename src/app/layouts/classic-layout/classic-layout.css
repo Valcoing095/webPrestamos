@@ -47,6 +47,20 @@
   color: white;
 }
 
+/* Section titles */
+.sidebar .nav-section {
+  padding: 1rem 1rem 0.25rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.sidebar .nav-section-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* ============================================
    MAIN CONTENT
    ============================================ */
