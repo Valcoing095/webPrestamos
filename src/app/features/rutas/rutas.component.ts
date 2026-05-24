@@ -10,42 +10,40 @@ import { Route, Lender } from '../../core/models';
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   template: `
-    <div class="container-fluid p-4">
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <h1 class="h3">Gestión de Rutas</h1>
-          <p class="text-muted">Administra tus rutas de cobro y asigna prestamistas</p>
+    <div class="container-fluid p-3 p-md-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+        <div>
+          <h1 class="h4 h3-md mb-1">Gestión de Rutas</h1>
+          <p class="text-muted mb-0 small">Administra tus rutas de cobro y asigna prestamistas</p>
         </div>
-        <div class="col-md-6 text-end">
-          <button class="btn btn-primary" (click)="openCreateModal()">
-            <i class="bi bi-plus-circle"></i> Nueva Ruta
-          </button>
-        </div>
+        <button class="btn btn-primary w-100 w-md-auto" (click)="openCreateModal()">
+          <i class="bi bi-plus-circle"></i> Nueva Ruta
+        </button>
       </div>
 
       <!-- Resumen -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm bg-primary text-white">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Total de Rutas</h6>
-              <h3 class="mb-0">{{ routes().length }}</h3>
+      <div class="row g-2 g-md-3 mb-4">
+        <div class="col-6 col-md-4">
+          <div class="card border-0 shadow-sm bg-primary text-white h-100">
+            <div class="card-body p-3 p-md-4">
+              <h6 class="card-subtitle mb-1 opacity-75 small">Total de Rutas</h6>
+              <h3 class="mb-0 h4 h3-md">{{ routes().length }}</h3>
             </div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm bg-success text-white">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Rutas Asignadas</h6>
-              <h3 class="mb-0">{{ assignedRoutesCount() }}</h3>
+        <div class="col-6 col-md-4">
+          <div class="card border-0 shadow-sm bg-success text-white h-100">
+            <div class="card-body p-3 p-md-4">
+              <h6 class="card-subtitle mb-1 opacity-75 small">Rutas Asignadas</h6>
+              <h3 class="mb-0 h4 h3-md">{{ assignedRoutesCount() }}</h3>
             </div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm bg-info text-white">
-            <div class="card-body">
-              <h6 class="card-subtitle mb-2 opacity-75">Rutas Disponibles</h6>
-              <h3 class="mb-0">{{ availableRoutesCount() }}</h3>
+        <div class="col-6 col-md-4">
+          <div class="card border-0 shadow-sm bg-info text-white h-100">
+            <div class="card-body p-3 p-md-4">
+              <h6 class="card-subtitle mb-1 opacity-75 small">Rutas Disponibles</h6>
+              <h3 class="mb-0 h4 h3-md">{{ availableRoutesCount() }}</h3>
             </div>
           </div>
         </div>
@@ -53,51 +51,55 @@ import { Route, Lender } from '../../core/models';
 
       <!-- Tabla de Rutas -->
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-light">
-          <div class="row align-items-center">
-            <div class="col-md-8">
+        <div class="card-header bg-light p-2 p-md-3">
+          <div class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2">
+            <div class="flex-grow-1">
               <input 
                 type="text" 
-                class="form-control" 
+                class="form-control form-control-sm" 
                 placeholder="Buscar ruta..."
                 (input)="searchTerm.set($event.target.value)"
               />
             </div>
-            <div class="col-md-4 text-end">
+            <div class="text-md-end text-nowrap">
               <small class="text-muted">Mostrando {{ filteredRoutes().length }} de {{ routes().length }}</small>
             </div>
           </div>
         </div>
         <div class="table-responsive">
-          <table class="table table-hover mb-0">
+          <table class="table table-hover mb-0 table-sm align-middle">
             <thead class="table-light">
               <tr>
                 <th>Nombre</th>
-                <th>Zona</th>
-                <th>Descripción</th>
-                <th>Prestamista Asignado</th>
-                <th>Estado</th>
-                <th>Acciones</th>
+                <th class="d-none d-sm-table-cell">Zona</th>
+                <th class="d-none d-md-table-cell">Descripción</th>
+                <th>Prestamista</th>
+                <th class="text-center">Estado</th>
+                <th class="text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let route of filteredRoutes()">
-                <td><strong>{{ route.name }}</strong></td>
-                <td>{{ route.zone || '-' }}</td>
-                <td>{{ route.description || '-' }}</td>
+                <td><strong class="small">{{ route.name }}</strong></td>
+                <td class="d-none d-sm-table-cell"><small>{{ route.zone || '-' }}</small></td>
+                <td class="d-none d-md-table-cell"><small>{{ (route.description || '-').length > 30 ? (route.description || '-').substring(0, 30) + '...' : (route.description || '-') }}</small></td>
                 <td>
-                  <span *ngIf="getLenderName(route.lenderId)" class="badge bg-success">
+                  <span *ngIf="getLenderName(route.lenderId)" class="badge bg-success" style="font-size: 0.7rem;">
                     {{ getLenderName(route.lenderId) }}
                   </span>
-                  <span *ngIf="!route.lenderId" class="text-muted small">No asignado</span>
+                  <span *ngIf="!route.lenderId" class="text-muted small">-</span>
                 </td>
-                <td>
-                  <span *ngIf="route.isActive" class="badge bg-success">Activa</span>
-                  <span *ngIf="!route.isActive" class="badge bg-secondary">Inactiva</span>
+                <td class="text-center">
+                  <span *ngIf="route.isActive" class="badge bg-success" style="font-size: 0.7rem;">Activa</span>
+                  <span *ngIf="!route.isActive" class="badge bg-secondary" style="font-size: 0.7rem;">Inactiva</span>
                 </td>
-                <td>
-                  <button class="btn btn-sm btn-outline-primary me-1" (click)="openEditModal(route)">Editar</button>
-                  <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(route)">Eliminar</button>
+                <td class="text-center text-nowrap">
+                  <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" title="Editar" (click)="openEditModal(route)">
+                    <small>Editar</small>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger py-1 px-2" title="Eliminar" (click)="confirmDelete(route)">
+                    <small>Eliminar</small>
+                  </button>
                 </td>
               </tr>
               <tr *ngIf="filteredRoutes().length === 0">
@@ -109,8 +111,8 @@ import { Route, Lender } from '../../core/models';
       </div>
 
       <!-- Modal de Crear/Editar -->
-      <div class="modal" [class.show]="showModal()" [style.display]="showModal() ? 'block' : 'none'">
-        <div class="modal-dialog modal-lg">
+      <div class="modal" [class.show]="showModal()" [style.display]="showModal() ? 'block' : 'none'" *ngIf="showModal()">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">{{ editingRoute() ? 'Editar Ruta' : 'Nueva Ruta' }}</h5>
@@ -118,14 +120,14 @@ import { Route, Lender } from '../../core/models';
             </div>
             <div class="modal-body">
               <form [formGroup]="form" *ngIf="form">
-                <div class="row">
-                  <div class="col-md-6">
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
                     <div class="mb-3">
                       <label for="name" class="form-label">Nombre de la Ruta *</label>
                       <input 
                         type="text" 
                         id="name" 
-                        class="form-control" 
+                        class="form-control form-control-sm" 
                         formControlName="name"
                         placeholder="Nombre de la ruta"
                       />
@@ -134,13 +136,13 @@ import { Route, Lender } from '../../core/models';
                       </small>
                     </div>
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-12 col-md-6">
                     <div class="mb-3">
                       <label for="zone" class="form-label">Zona</label>
                       <input 
                         type="text" 
                         id="zone" 
-                        class="form-control" 
+                        class="form-control form-control-sm" 
                         formControlName="zone"
                         placeholder="Ej: Centro, Norte, Sur"
                       />
@@ -152,7 +154,7 @@ import { Route, Lender } from '../../core/models';
                   <label for="description" class="form-label">Descripción</label>
                   <textarea 
                     id="description" 
-                    class="form-control" 
+                    class="form-control form-control-sm" 
                     formControlName="description"
                     rows="3"
                     placeholder="Descripción de la ruta..."
@@ -163,7 +165,7 @@ import { Route, Lender } from '../../core/models';
                   <label for="lenderId" class="form-label">Prestamista Asignado</label>
                   <select 
                     id="lenderId" 
-                    class="form-select" 
+                    class="form-select form-select-sm" 
                     formControlName="lenderId"
                   >
                     <option [value]="null">Sin prestamista asignado</option>
@@ -173,24 +175,24 @@ import { Route, Lender } from '../../core/models';
                   </select>
                 </div>
 
-                <div class="form-check">
+                <div class="form-check mb-0">
                   <input 
                     type="checkbox" 
                     id="isActive" 
                     class="form-check-input" 
                     formControlName="isActive"
                   />
-                  <label class="form-check-label" for="isActive">
+                  <label class="form-check-label small" for="isActive">
                     Ruta Activa
                   </label>
                 </div>
               </form>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="closeModal()">Cancelar</button>
               <button 
                 type="button" 
-                class="btn btn-primary" 
+                class="btn btn-primary btn-sm" 
                 (click)="saveRoute()"
                 [disabled]="!form || form.invalid"
               >
@@ -200,34 +202,35 @@ import { Route, Lender } from '../../core/models';
           </div>
         </div>
       </div>
-      <div class="modal-backdrop fade" [class.show]="showModal()" *ngIf="showModal()"></div>
+      <div class="modal-backdrop fade show" *ngIf="showModal()"></div>
 
       <!-- Modal de Confirmación de Eliminación -->
-      <div class="modal" [class.show]="showDeleteModal()" [style.display]="showDeleteModal() ? 'block' : 'none'">
-        <div class="modal-dialog modal-dialog-centered">
+      <div class="modal" [class.show]="showDeleteModal()" [style.display]="showDeleteModal() ? 'block' : 'none'" *ngIf="showDeleteModal()">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Confirmar Eliminación</h5>
               <button type="button" class="btn-close" (click)="closeDeleteModal()"></button>
             </div>
             <div class="modal-body">
-              <p *ngIf="routeToDelete()">
+              <p *ngIf="routeToDelete()" class="mb-0">
                 ¿Estás seguro de que deseas eliminar la ruta <strong>{{ routeToDelete()?.name }}</strong>?
               </p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
-              <button type="button" class="btn btn-danger" (click)="deleteRoute()">Eliminar</button>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="closeDeleteModal()">Cancelar</button>
+              <button type="button" class="btn btn-danger btn-sm" (click)="deleteRoute()">Eliminar</button>
             </div>
           </div>
         </div>
       </div>
-      <div class="modal-backdrop fade" [class.show]="showDeleteModal()" *ngIf="showDeleteModal()"></div>
+      <div class="modal-backdrop fade show" *ngIf="showDeleteModal()"></div>
 
       <!-- Toast de Notificación -->
       <div 
         *ngIf="toast()" 
-        class="position-fixed bottom-0 end-0 m-3 rounded-2 px-4 py-3 text-white"
+        class="position-fixed bottom-0 end-0 m-3 rounded-2 px-4 py-3 text-white shadow-lg"
+        style="z-index: 1060; max-width: 90vw;"
         [class.bg-success]="toast()?.type === 'success'"
         [class.bg-danger]="toast()?.type === 'error'"
       >

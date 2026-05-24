@@ -27,24 +27,24 @@ interface LenderSettlement {
   imports: [CommonModule, FormsModule],
   template: `
     <div class="container-fluid">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
-          <h2 class="mb-1">Liquidacion por Prestamista</h2>
-          <p class="text-muted mb-0">Resumen de cobranza y comisiones</p>
+          <h2 class="h4 h3-md mb-1">Liquidación por Prestamista</h2>
+          <p class="text-muted mb-0 small">Resumen de cobranza y comisiones</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center w-100 w-md-auto">
           <input 
             type="date" 
             class="form-control form-control-sm" 
             [(ngModel)]="startDate"
-            style="width: 150px;"
+            style="min-width: 130px; max-width: 160px; flex: 1 1 auto;"
           >
           <span class="align-self-center">a</span>
           <input 
             type="date" 
             class="form-control form-control-sm" 
             [(ngModel)]="endDate"
-            style="width: 150px;"
+            style="min-width: 130px; max-width: 160px; flex: 1 1 auto;"
           >
           <button class="btn btn-sm btn-outline-primary" (click)="applyDateFilter()">
             Filtrar
@@ -53,36 +53,36 @@ interface LenderSettlement {
       </div>
 
       <!-- Global Summary -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-3">
-          <div class="card border-0 shadow-sm bg-primary text-white">
-            <div class="card-body">
-              <h6 class="mb-1 opacity-75">Total Prestado</h6>
-              <h3 class="mb-0">{{ formatCurrency(globalStats().totalLoaned) }}</h3>
+      <div class="row g-2 g-md-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm bg-primary text-white h-100">
+            <div class="card-body p-3 p-md-4">
+              <h6 class="mb-1 opacity-75 small">Total Prestado</h6>
+              <h5 class="mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalLoaned) }}</h5>
             </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="card border-0 shadow-sm bg-success text-white">
-            <div class="card-body">
-              <h6 class="mb-1 opacity-75">Total Cobrado</h6>
-              <h3 class="mb-0">{{ formatCurrency(globalStats().totalCollected) }}</h3>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm bg-success text-white h-100">
+            <div class="card-body p-3 p-md-4">
+              <h6 class="mb-1 opacity-75 small">Total Cobrado</h6>
+              <h5 class="mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalCollected) }}</h5>
             </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="card border-0 shadow-sm bg-warning text-dark">
-            <div class="card-body">
-              <h6 class="mb-1 opacity-75">Comisiones</h6>
-              <h3 class="mb-0">{{ formatCurrency(globalStats().totalCommission) }}</h3>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm bg-warning text-dark h-100">
+            <div class="card-body p-3 p-md-4">
+              <h6 class="mb-1 opacity-75 small">Comisiones</h6>
+              <h5 class="mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalCommission) }}</h5>
             </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="card border-0 shadow-sm bg-info text-white">
-            <div class="card-body">
-              <h6 class="mb-1 opacity-75">Neto para Ti</h6>
-              <h3 class="mb-0">{{ formatCurrency(globalStats().netForOwner) }}</h3>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm bg-info text-white h-100">
+            <div class="card-body p-3 p-md-4">
+              <h6 class="mb-1 opacity-75 small">Neto para Ti</h6>
+              <h5 class="mb-0 h5 h3-md">{{ formatCurrency(globalStats().netForOwner) }}</h5>
             </div>
           </div>
         </div>
@@ -95,45 +95,45 @@ interface LenderSettlement {
         </div>
         <div class="card-body p-0">
           @for (settlement of settlements(); track settlement.lender.id) {
-            <div class="border-bottom p-4">
-              <div class="row align-items-center">
-                <div class="col-md-3">
-                  <h5 class="mb-1">{{ settlement.lender.name }}</h5>
-                  <span class="badge bg-secondary">{{ settlement.routeName }}</span>
+            <div class="border-bottom p-3 p-md-4">
+              <div class="row g-3 align-items-start">
+                <div class="col-12 col-md-3">
+                  <h6 class="h5-md mb-1">{{ settlement.lender.name }}</h6>
+                  <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ settlement.routeName }}</span>
                   <p class="text-muted mb-0 small mt-1">
-                    Comision: {{ settlement.lender.commissionPercentage }}%
+                    Comisión: {{ settlement.lender.commissionPercentage }}%
                   </p>
                 </div>
-                <div class="col-md-9">
-                  <div class="row g-3">
-                    <div class="col-6 col-md-2">
-                      <div class="text-muted small">Prestado</div>
-                      <div class="fw-medium">{{ formatCurrency(settlement.totalLoaned) }}</div>
+                <div class="col-12 col-md-9">
+                  <div class="row g-2 g-md-3">
+                    <div class="col-4 col-md-2">
+                      <div class="text-muted" style="font-size: 0.65rem;">Prestado</div>
+                      <div class="fw-medium" style="font-size: 0.8rem;">{{ formatCurrency(settlement.totalLoaned) }}</div>
                     </div>
-                    <div class="col-6 col-md-2">
-                      <div class="text-muted small">A Cobrar</div>
-                      <div class="fw-medium">{{ formatCurrency(settlement.totalToCollect) }}</div>
+                    <div class="col-4 col-md-2">
+                      <div class="text-muted" style="font-size: 0.65rem;">A Cobrar</div>
+                      <div class="fw-medium" style="font-size: 0.8rem;">{{ formatCurrency(settlement.totalToCollect) }}</div>
                     </div>
-                    <div class="col-6 col-md-2">
-                      <div class="text-muted small">Cobrado</div>
-                      <div class="fw-medium text-success">{{ formatCurrency(settlement.totalCollected) }}</div>
+                    <div class="col-4 col-md-2">
+                      <div class="text-muted" style="font-size: 0.65rem;">Cobrado</div>
+                      <div class="fw-medium text-success" style="font-size: 0.8rem;">{{ formatCurrency(settlement.totalCollected) }}</div>
                     </div>
-                    <div class="col-6 col-md-2">
-                      <div class="text-muted small">Pendiente</div>
-                      <div class="fw-medium text-warning">{{ formatCurrency(settlement.totalPending) }}</div>
+                    <div class="col-4 col-md-2">
+                      <div class="text-muted" style="font-size: 0.65rem;">Pendiente</div>
+                      <div class="fw-medium text-warning" style="font-size: 0.8rem;">{{ formatCurrency(settlement.totalPending) }}</div>
                     </div>
-                    <div class="col-6 col-md-2">
-                      <div class="text-muted small">Su Comision</div>
-                      <div class="fw-medium text-danger">{{ formatCurrency(settlement.commission) }}</div>
+                    <div class="col-4 col-md-2">
+                      <div class="text-muted" style="font-size: 0.65rem;">Comisión</div>
+                      <div class="fw-medium text-danger" style="font-size: 0.8rem;">{{ formatCurrency(settlement.commission) }}</div>
                     </div>
-                    <div class="col-6 col-md-2">
-                      <div class="text-muted small">Para Ti</div>
-                      <div class="fw-bold text-primary">{{ formatCurrency(settlement.netForOwner) }}</div>
+                    <div class="col-4 col-md-2">
+                      <div class="text-muted" style="font-size: 0.65rem;">Para Ti</div>
+                      <div class="fw-bold text-primary" style="font-size: 0.8rem;">{{ formatCurrency(settlement.netForOwner) }}</div>
                     </div>
                   </div>
                   <div class="mt-2">
-                    <span class="badge bg-primary me-1">{{ settlement.activeLoans }} activos</span>
-                    <span class="badge bg-success">{{ settlement.completedLoans }} completados</span>
+                    <span class="badge bg-primary me-1" style="font-size: 0.7rem;">{{ settlement.activeLoans }} activos</span>
+                    <span class="badge bg-success" style="font-size: 0.7rem;">{{ settlement.completedLoans }} completados</span>
                   </div>
                 </div>
               </div>
@@ -148,9 +148,9 @@ interface LenderSettlement {
 
       <!-- Detailed Table -->
       <div class="card border-0 shadow-sm mt-4">
-        <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Movimientos del Periodo</h5>
-          <select class="form-select form-select-sm" style="width: auto;" [(ngModel)]="selectedLenderForDetails">
+        <div class="card-header bg-white border-bottom d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+          <h6 class="mb-0">Movimientos del Periodo</h6>
+          <select class="form-select form-select-sm w-auto" [(ngModel)]="selectedLenderForDetails">
             <option value="">Todos los prestamistas</option>
             @for (lender of lenders(); track lender.id) {
               <option [value]="lender.id">{{ lender.name }}</option>
@@ -158,31 +158,31 @@ interface LenderSettlement {
           </select>
         </div>
         <div class="table-responsive">
-          <table class="table table-sm mb-0">
+          <table class="table table-sm mb-0 align-middle">
             <thead class="table-light">
               <tr>
                 <th>Fecha</th>
                 <th>Prestamista</th>
                 <th>Tipo</th>
-                <th>Descripcion</th>
+                <th class="d-none d-sm-table-cell">Descripción</th>
                 <th class="text-end">Monto</th>
               </tr>
             </thead>
             <tbody>
               @for (movement of filteredMovements(); track movement.id) {
                 <tr>
-                  <td>{{ formatDate(movement.date) }}</td>
-                  <td>{{ movement.lenderName }}</td>
+                  <td><small>{{ formatDate(movement.date) }}</small></td>
+                  <td><small>{{ movement.lenderName }}</small></td>
                   <td>
                     @if (movement.type === 'loan') {
-                      <span class="badge bg-primary">Prestamo</span>
+                      <span class="badge bg-primary" style="font-size: 0.65rem;">Préstamo</span>
                     } @else {
-                      <span class="badge bg-success">Pago</span>
+                      <span class="badge bg-success" style="font-size: 0.65rem;">Pago</span>
                     }
                   </td>
-                  <td>{{ movement.description }}</td>
-                  <td class="text-end" [class.text-danger]="movement.type === 'loan'" [class.text-success]="movement.type === 'payment'">
-                    {{ movement.type === 'loan' ? '-' : '+' }}{{ formatCurrency(movement.amount) }}
+                  <td class="d-none d-sm-table-cell"><small>{{ movement.description }}</small></td>
+                  <td class="text-end text-nowrap" [class.text-danger]="movement.type === 'loan'" [class.text-success]="movement.type === 'payment'">
+                    <small>{{ movement.type === 'loan' ? '-' : '+' }}{{ formatCurrency(movement.amount) }}</small>
                   </td>
                 </tr>
               } @empty {

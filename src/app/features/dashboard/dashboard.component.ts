@@ -22,56 +22,56 @@ import { Loan, Payment, Lender, Person } from '../../core/models';
       </div>
 
       <!-- KPIs Principales -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div class="bg-white rounded-xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-center gap-3 mb-2 md:mb-3">
+            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg class="w-4 h-4 md:w-5 md:h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
             </div>
-            <span class="text-sm font-medium text-slate-500">Capital Total</span>
+            <span class="text-xs md:text-sm font-medium text-slate-500">Capital Total</span>
           </div>
-          <p class="text-2xl font-bold text-slate-800">{{ formatCurrency(totalLoaned()) }}</p>
+          <p class="text-xl md:text-2xl font-bold text-slate-800">{{ formatCurrency(totalLoaned()) }}</p>
           <p class="text-xs text-slate-400 mt-1">Desembolsado total</p>
         </div>
 
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white rounded-xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-center gap-3 mb-2 md:mb-3">
+            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <svg class="w-4 h-4 md:w-5 md:h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
             </div>
-            <span class="text-sm font-medium text-slate-500">Recuperado</span>
+            <span class="text-xs md:text-sm font-medium text-slate-500">Recuperado</span>
           </div>
-          <p class="text-2xl font-bold text-slate-800">{{ formatCurrency(totalCollected()) }}</p>
+          <p class="text-xl md:text-2xl font-bold text-slate-800">{{ formatCurrency(totalCollected()) }}</p>
           <p class="text-xs text-emerald-500 mt-1">{{ collectPercentage() }}% del total</p>
         </div>
 
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white rounded-xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-center gap-3 mb-2 md:mb-3">
+            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+              <svg class="w-4 h-4 md:w-5 md:h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
               </svg>
             </div>
-            <span class="text-sm font-medium text-slate-500">Pendiente</span>
+            <span class="text-xs md:text-sm font-medium text-slate-500">Pendiente</span>
           </div>
-          <p class="text-2xl font-bold text-slate-800">{{ formatCurrency(pendingCapital()) }}</p>
+          <p class="text-xl md:text-2xl font-bold text-slate-800">{{ formatCurrency(pendingCapital()) }}</p>
           <p class="text-xs text-slate-400 mt-1">Por cobrar</p>
         </div>
 
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-white rounded-xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div class="flex items-center gap-3 mb-2 md:mb-3">
+            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+              <svg class="w-4 h-4 md:w-5 md:h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
             </div>
-            <span class="text-sm font-medium text-slate-500">Prestamos Activos</span>
+            <span class="text-xs md:text-sm font-medium text-slate-500">Prestamos Activos</span>
           </div>
-          <p class="text-2xl font-bold text-slate-800">{{ activeLoansCount() }}</p>
+          <p class="text-xl md:text-2xl font-bold text-slate-800">{{ activeLoansCount() }}</p>
           <p class="text-xs text-slate-400 mt-1">En proceso</p>
         </div>
       </div>
@@ -153,25 +153,25 @@ import { Loan, Payment, Lender, Person } from '../../core/models';
             <h3 class="text-base font-semibold text-slate-800">Ultimos Pagos</h3>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="w-full text-sm">
               <thead class="bg-slate-50/80">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
-                  <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Prestamo</th>
-                  <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Monto</th>
-                  <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
+                  <th class="px-4 md:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
+                  <th class="px-4 md:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Prestamo</th>
+                  <th class="px-4 md:px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Monto</th>
+                  <th class="px-4 md:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Fecha</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-50">
                 <tr *ngFor="let payment of recentPayments()" class="hover:bg-slate-50/50 transition-colors">
-                  <td class="px-6 py-4 text-sm font-medium text-slate-800">{{ getPersonNameForLoan(payment.loanId) }}</td>
-                  <td class="px-6 py-4">
+                  <td class="px-4 md:px-6 py-4 text-sm font-medium text-slate-800">{{ getPersonNameForLoan(payment.loanId) }}</td>
+                  <td class="px-4 md:px-6 py-4 hidden sm:table-cell">
                     <span class="inline-flex px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded">
                       {{ getLoanId(payment.loanId) }}
                     </span>
                   </td>
-                  <td class="px-6 py-4 text-sm text-right font-medium text-slate-800">{{ formatCurrency(payment.amount) }}</td>
-                  <td class="px-6 py-4 text-sm text-slate-500">{{ formatDate(payment.date) }}</td>
+                  <td class="px-4 md:px-6 py-4 text-sm text-right font-medium text-slate-800">{{ formatCurrency(payment.amount) }}</td>
+                  <td class="px-4 md:px-6 py-4 text-sm text-slate-500 hidden sm:table-cell">{{ formatDate(payment.date) }}</td>
                 </tr>
                 <tr *ngIf="recentPayments().length === 0">
                   <td colspan="4" class="px-6 py-8 text-center text-sm text-slate-400">No hay pagos registrados</td>

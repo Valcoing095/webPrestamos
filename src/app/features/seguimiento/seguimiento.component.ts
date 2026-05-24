@@ -24,27 +24,27 @@ import { RouteService } from '../../core/services/route.service';
       <!-- Filtros -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-          <div class="row g-3 align-items-end">
-            <div class="col-md-3">
-              <label for="filter-start" class="form-label">Fecha Inicio</label>
-              <input type="date" id="filter-start" [(ngModel)]="filterStartDate" name="startDate" class="form-control" />
+          <div class="row g-2 g-md-3 align-items-end">
+            <div class="col-12 col-sm-6 col-md-3">
+              <label for="filter-start" class="form-label small">Fecha Inicio</label>
+              <input type="date" id="filter-start" [(ngModel)]="filterStartDate" name="startDate" class="form-control form-control-sm" />
             </div>
-            <div class="col-md-3">
-              <label for="filter-end" class="form-label">Fecha Fin</label>
-              <input type="date" id="filter-end" [(ngModel)]="filterEndDate" name="endDate" class="form-control" />
+            <div class="col-12 col-sm-6 col-md-3">
+              <label for="filter-end" class="form-label small">Fecha Fin</label>
+              <input type="date" id="filter-end" [(ngModel)]="filterEndDate" name="endDate" class="form-control form-control-sm" />
             </div>
-            <div class="col-md-3">
-              <label for="filter-lender" class="form-label">Prestamista</label>
-              <select id="filter-lender" [(ngModel)]="filterLenderId" name="lenderId" class="form-select">
+            <div class="col-12 col-sm-6 col-md-3">
+              <label for="filter-lender" class="form-label small">Prestamista</label>
+              <select id="filter-lender" [(ngModel)]="filterLenderId" name="lenderId" class="form-select form-select-sm">
                 <option value="">Todos</option>
                 @for (lender of lenders(); track lender.id) {
                   <option [value]="lender.id">{{ lender.name }}</option>
                 }
               </select>
             </div>
-            <div class="col-md-3">
-              <label for="filter-route" class="form-label">Ruta</label>
-              <select id="filter-route" [(ngModel)]="filterRouteId" name="routeId" class="form-select">
+            <div class="col-12 col-sm-6 col-md-3">
+              <label for="filter-route" class="form-label small">Ruta</label>
+              <select id="filter-route" [(ngModel)]="filterRouteId" name="routeId" class="form-select form-select-sm">
                 <option value="">Todas</option>
                 @for (route of routes(); track route.id) {
                   <option [value]="route.id">{{ route.name }}</option>
@@ -56,17 +56,17 @@ import { RouteService } from '../../core/services/route.service';
       </div>
 
       <!-- KPIs -->
-      <div class="row g-3 mb-4">
+      <div class="row g-2 g-md-3 mb-4">
         <div class="col-6 col-lg-3">
           <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+            <div class="card-body p-3 p-md-4">
               <div class="d-flex align-items-center">
-                <div class="flex-shrink-0 rounded-circle bg-danger bg-opacity-10 p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-danger"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <div class="flex-shrink-0 rounded-circle bg-danger bg-opacity-10 p-2 p-md-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-danger"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
-                <div class="ms-3">
-                  <p class="text-muted mb-0 small">Mora Total</p>
-                  <h4 class="mb-0">{{ formatCurrency(totalMora()) }}</h4>
+                <div class="ms-2 ms-md-3">
+                  <p class="text-muted mb-0" style="font-size: 0.65rem;">Mora Total</p>
+                  <h6 class="mb-0 h6 h5-md">{{ formatCurrency(totalMora()) }}</h6>
                 </div>
               </div>
             </div>
@@ -74,14 +74,14 @@ import { RouteService } from '../../core/services/route.service';
         </div>
         <div class="col-6 col-lg-3">
           <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+            <div class="card-body p-3 p-md-4">
               <div class="d-flex align-items-center">
-                <div class="flex-shrink-0 rounded-circle bg-success bg-opacity-10 p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                <div class="flex-shrink-0 rounded-circle bg-success bg-opacity-10 p-2 p-md-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
-                <div class="ms-3">
-                  <p class="text-muted mb-0 small">Rentabilidad</p>
-                  <h4 class="mb-0">{{ rentabilidad() }}%</h4>
+                <div class="ms-2 ms-md-3">
+                  <p class="text-muted mb-0" style="font-size: 0.65rem;">Rentabilidad</p>
+                  <h6 class="mb-0 h6 h5-md">{{ rentabilidad() }}%</h6>
                 </div>
               </div>
             </div>
@@ -89,14 +89,14 @@ import { RouteService } from '../../core/services/route.service';
         </div>
         <div class="col-6 col-lg-3">
           <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+            <div class="card-body p-3 p-md-4">
               <div class="d-flex align-items-center">
-                <div class="flex-shrink-0 rounded-circle bg-primary bg-opacity-10 p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <div class="flex-shrink-0 rounded-circle bg-primary bg-opacity-10 p-2 p-md-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 </div>
-                <div class="ms-3">
-                  <p class="text-muted mb-0 small">Clientes Activos</p>
-                  <h4 class="mb-0">{{ clientesActivos() }}</h4>
+                <div class="ms-2 ms-md-3">
+                  <p class="text-muted mb-0" style="font-size: 0.65rem;">Clientes Activos</p>
+                  <h6 class="mb-0 h6 h5-md">{{ clientesActivos() }}</h6>
                 </div>
               </div>
             </div>
@@ -104,14 +104,14 @@ import { RouteService } from '../../core/services/route.service';
         </div>
         <div class="col-6 col-lg-3">
           <div class="card border-0 shadow-sm h-100">
-            <div class="card-body">
+            <div class="card-body p-3 p-md-4">
               <div class="d-flex align-items-center">
-                <div class="flex-shrink-0 rounded-circle bg-warning bg-opacity-10 p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warning"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+                <div class="flex-shrink-0 rounded-circle bg-warning bg-opacity-10 p-2 p-md-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warning"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
                 </div>
-                <div class="ms-3">
-                  <p class="text-muted mb-0 small">Clientes Morosos</p>
-                  <h4 class="mb-0">{{ clientesMorosos() }}</h4>
+                <div class="ms-2 ms-md-3">
+                  <p class="text-muted mb-0" style="font-size: 0.65rem;">Clientes Morosos</p>
+                  <h6 class="mb-0 h6 h5-md">{{ clientesMorosos() }}</h6>
                 </div>
               </div>
             </div>
@@ -165,26 +165,26 @@ import { RouteService } from '../../core/services/route.service';
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 table-sm align-middle">
               <thead class="table-light">
                 <tr>
                   <th class="px-3">Ruta</th>
                   <th>Clientes</th>
-                  <th>Prestamos Activos</th>
-                  <th>Monto Total</th>
+                  <th>Activos</th>
+                  <th class="d-none d-sm-table-cell">Monto Total</th>
                   <th>Cobrado</th>
-                  <th>Pendiente</th>
+                  <th class="d-none d-sm-table-cell">Pendiente</th>
                 </tr>
               </thead>
               <tbody>
                 @for (summary of routeSummaries(); track summary.routeId) {
                   <tr>
-                    <td class="px-3 fw-medium">{{ summary.routeName }}</td>
-                    <td>{{ summary.clientCount }}</td>
-                    <td>{{ summary.activeLoans }}</td>
-                    <td>{{ formatCurrency(summary.totalAmount) }}</td>
-                    <td class="text-success">{{ formatCurrency(summary.collected) }}</td>
-                    <td class="text-warning">{{ formatCurrency(summary.pending) }}</td>
+                    <td class="px-3 fw-medium small">{{ summary.routeName }}</td>
+                    <td><small>{{ summary.clientCount }}</small></td>
+                    <td><small>{{ summary.activeLoans }}</small></td>
+                    <td class="d-none d-sm-table-cell"><small>{{ formatCurrency(summary.totalAmount) }}</small></td>
+                    <td class="text-success"><small>{{ formatCurrency(summary.collected) }}</small></td>
+                    <td class="text-warning d-none d-sm-table-cell"><small>{{ formatCurrency(summary.pending) }}</small></td>
                   </tr>
                 } @empty {
                   <tr>

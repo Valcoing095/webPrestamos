@@ -1,8 +1,8 @@
 <!-- /src/app/layouts/classic-layout/classic-layout.html -->
-<div class="flex h-screen bg-slate-50">
+<div class="flex min-h-screen bg-slate-50">
   <!-- Sidebar -->
   <aside 
-    class="fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 transform transition-transform duration-300 ease-out lg:translate-x-0 lg:static"
+    class="fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 transform transition-transform duration-300 ease-out lg:translate-x-0 lg:static lg:w-64"
     [class.-translate-x-full]="!sidebarOpen"
     [class.translate-x-0]="sidebarOpen"
   >
@@ -129,7 +129,7 @@
   ></div>
 
   <!-- Main Content -->
-  <div class="flex-1 flex flex-col min-h-screen lg:ml-0">
+  <div class="flex-1 flex flex-col min-h-screen lg:ml-0 overflow-y-auto">
     <!-- Top Navbar -->
     <header class="sticky top-0 z-10 flex items-center h-16 px-4 bg-white/80 backdrop-blur-md border-b border-slate-100">
       <button 
@@ -150,7 +150,7 @@
     </header>
 
     <!-- Page Content -->
-    <main class="flex-1 p-4 md:p-6 lg:p-8">
+    <main class="flex-1 p-3 sm:p-4 md:p-6 lg:p-8">
       <router-outlet></router-outlet>
     </main>
   </div>

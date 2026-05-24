@@ -14,22 +14,22 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="container-fluid">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="container-fluid p-3 p-md-4">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
-          <h2 class="mb-1">Prestamos por Ruta</h2>
-          <p class="text-muted mb-0">Gestion de prestamos asignados a prestamistas</p>
+          <h2 class="h4 h3-md mb-1">Préstamos por Ruta</h2>
+          <p class="text-muted mb-0 small">Gestión de préstamos asignados a prestamistas</p>
         </div>
-        <button class="btn btn-primary" (click)="openModal()">
-          <i class="bi bi-plus-lg me-1"></i> Nuevo Prestamo
+        <button class="btn btn-primary w-100 w-md-auto" (click)="openModal()">
+          <i class="bi bi-plus-lg me-1"></i> Nuevo Préstamo
         </button>
       </div>
 
       <!-- Filter by Lender/Route -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body py-2">
-          <div class="row align-items-center">
-            <div class="col-md-4">
+          <div class="row g-2 align-items-center">
+            <div class="col-12 col-sm-6 col-md-4">
               <select class="form-select form-select-sm" [(ngModel)]="selectedLenderId" (change)="onLenderChange()">
                 <option value="">Todos los prestamistas</option>
                 @for (lender of lenders(); track lender.id) {
@@ -37,7 +37,7 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
                 }
               </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-sm-6 col-md-4">
               <select class="form-select form-select-sm" [(ngModel)]="selectedRouteId">
                 <option value="">Todas las rutas</option>
                 @for (route of filteredRoutes(); track route.id) {
@@ -45,7 +45,7 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
                 }
               </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <input 
                 type="text" 
                 class="form-control form-control-sm" 
@@ -59,36 +59,36 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
 
       <!-- Stats by Lender -->
       @if (selectedLenderId) {
-        <div class="row g-3 mb-4">
-          <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-primary text-white">
-              <div class="card-body">
-                <h6 class="mb-1">Total Prestado</h6>
-                <h4 class="mb-0">{{ formatCurrency(lenderStats().totalLoaned) }}</h4>
+        <div class="row g-2 g-md-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white h-100">
+              <div class="card-body p-3">
+                <h6 class="mb-1 small opacity-75">Total Prestado</h6>
+                <h5 class="mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalLoaned) }}</h5>
               </div>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-success text-white">
-              <div class="card-body">
-                <h6 class="mb-1">Cobrado</h6>
-                <h4 class="mb-0">{{ formatCurrency(lenderStats().totalCollected) }}</h4>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white h-100">
+              <div class="card-body p-3">
+                <h6 class="mb-1 small opacity-75">Cobrado</h6>
+                <h5 class="mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalCollected) }}</h5>
               </div>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-warning text-dark">
-              <div class="card-body">
-                <h6 class="mb-1">Pendiente</h6>
-                <h4 class="mb-0">{{ formatCurrency(lenderStats().totalPending) }}</h4>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-dark h-100">
+              <div class="card-body p-3">
+                <h6 class="mb-1 small opacity-75">Pendiente</h6>
+                <h5 class="mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalPending) }}</h5>
               </div>
             </div>
           </div>
-          <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-info text-white">
-              <div class="card-body">
-                <h6 class="mb-1">Prestamos Activos</h6>
-                <h4 class="mb-0">{{ lenderStats().activeCount }}</h4>
+          <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-info text-white h-100">
+              <div class="card-body p-3">
+                <h6 class="mb-1 small opacity-75">Préstamos Activos</h6>
+                <h5 class="mb-0 h5 h4-md">{{ lenderStats().activeCount }}</h5>
               </div>
             </div>
           </div>
@@ -98,53 +98,53 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
       <!-- Loans Table -->
       <div class="card border-0 shadow-sm">
         <div class="table-responsive">
-          <table class="table table-hover mb-0">
+          <table class="table table-hover mb-0 table-sm align-middle">
             <thead class="table-light">
               <tr>
                 <th>Prestamista</th>
-                <th>Ruta</th>
+                <th class="d-none d-sm-table-cell">Ruta</th>
                 <th>Cliente</th>
-                <th>Monto</th>
-                <th>Total</th>
-                <th>Pagado</th>
-                <th>Pendiente</th>
-                <th>Fecha</th>
-                <th class="text-end">Acciones</th>
+                <th class="text-end">Monto</th>
+                <th class="d-none d-md-table-cell text-end">Total</th>
+                <th class="text-end">Pagado</th>
+                <th class="d-none d-sm-table-cell text-end">Pendiente</th>
+                <th class="d-none d-lg-table-cell">Fecha</th>
+                <th class="text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
               @for (loan of filteredLoans(); track loan.id) {
                 <tr>
                   <td>
-                    <span class="badge bg-dark">{{ getLenderName(loan.lenderId) }}</span>
+                    <span class="badge bg-dark" style="font-size: 0.7rem;">{{ getLenderName(loan.lenderId) }}</span>
+                  </td>
+                  <td class="d-none d-sm-table-cell">
+                    <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ getRouteName(loan.routeId) }}</span>
                   </td>
                   <td>
-                    <span class="badge bg-secondary">{{ getRouteName(loan.routeId) }}</span>
+                    <div class="fw-medium small">{{ getPersonName(loan.personId) }}</div>
                   </td>
-                  <td>
-                    <div class="fw-medium">{{ getPersonName(loan.personId) }}</div>
-                  </td>
-                  <td>{{ formatCurrency(loan.amount) }}</td>
-                  <td>{{ formatCurrency(loan.totalToCollect) }}</td>
-                  <td class="text-success">{{ formatCurrency(getTotalPaid(loan.id)) }}</td>
-                  <td class="text-warning">{{ formatCurrency(getPending(loan)) }}</td>
-                  <td>{{ formatDate(loan.date) }}</td>
-                  <td class="text-end">
-                    <button class="btn btn-sm btn-outline-success me-1" (click)="registerPayment(loan)" title="Registrar pago">
-                      <i class="bi bi-cash"></i>
+                  <td class="text-end"><small>{{ formatCurrency(loan.amount) }}</small></td>
+                  <td class="d-none d-md-table-cell text-end"><small>{{ formatCurrency(loan.totalToCollect) }}</small></td>
+                  <td class="text-success text-end"><small>{{ formatCurrency(getTotalPaid(loan.id)) }}</small></td>
+                  <td class="text-warning d-none d-sm-table-cell text-end"><small>{{ formatCurrency(getPending(loan)) }}</small></td>
+                  <td class="d-none d-lg-table-cell"><small>{{ formatDate(loan.date) }}</small></td>
+                  <td class="text-center text-nowrap">
+                    <button class="btn btn-sm btn-outline-success py-1 px-1 me-1" (click)="registerPayment(loan)" title="Registrar pago">
+                      <small>Pago</small>
                     </button>
-                    <button class="btn btn-sm btn-outline-primary me-1" (click)="editLoan(loan)">
-                      <i class="bi bi-pencil"></i>
+                    <button class="btn btn-sm btn-outline-primary py-1 px-1 me-1" (click)="editLoan(loan)" title="Editar">
+                      <small>Editar</small>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(loan)">
-                      <i class="bi bi-trash"></i>
+                    <button class="btn btn-sm btn-outline-danger py-1 px-1" (click)="confirmDelete(loan)" title="Eliminar">
+                      <small>Eliminar</small>
                     </button>
                   </td>
                 </tr>
               } @empty {
                 <tr>
                   <td colspan="9" class="text-center py-4 text-muted">
-                    No hay prestamos registrados
+                    No hay préstamos registrados
                   </td>
                 </tr>
               }
@@ -156,61 +156,61 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
 
     <!-- Loan Modal -->
     @if (showModal()) {
-      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-lg">
+      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">{{ editingLoan() ? 'Editar' : 'Nuevo' }} Prestamo</h5>
+              <h5 class="modal-title">{{ editingLoan() ? 'Editar' : 'Nuevo' }} Préstamo</h5>
               <button type="button" class="btn-close" (click)="closeModal()"></button>
             </div>
             <div class="modal-body">
               <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label">Prestamista *</label>
-                  <select class="form-select" [(ngModel)]="form.lenderId" (change)="onFormLenderChange()" required>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Prestamista *</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="form.lenderId" (change)="onFormLenderChange()" required>
                     <option value="">Seleccionar prestamista</option>
                     @for (lender of lenders(); track lender.id) {
                       <option [value]="lender.id">{{ lender.name }}</option>
                     }
                   </select>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Ruta</label>
-                  <select class="form-select" [(ngModel)]="form.routeId">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Ruta</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="form.routeId">
                     <option value="">Sin ruta</option>
                     @for (route of routesForLender(); track route.id) {
                       <option [value]="route.id">{{ route.name }}</option>
                     }
                   </select>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Cliente *</label>
-                  <select class="form-select" [(ngModel)]="form.personId" required>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Cliente *</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="form.personId" required>
                     <option value="">Seleccionar cliente</option>
                     @for (person of persons(); track person.id) {
                       <option [value]="person.id">{{ person.name }}</option>
                     }
                   </select>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Fecha *</label>
-                  <input type="date" class="form-control" [(ngModel)]="form.date" required>
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Fecha *</label>
+                  <input type="date" class="form-control form-control-sm" [(ngModel)]="form.date" required>
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label">Monto Prestado *</label>
-                  <input type="number" class="form-control" [(ngModel)]="form.amount" min="0" required>
+                <div class="col-12 col-sm-4">
+                  <label class="form-label small">Monto Prestado *</label>
+                  <input type="number" class="form-control form-control-sm" [(ngModel)]="form.amount" min="0" required>
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label">Interes (%)</label>
-                  <input type="number" class="form-control" [(ngModel)]="form.interest" min="0">
+                <div class="col-12 col-sm-4">
+                  <label class="form-label small">Interés (%)</label>
+                  <input type="number" class="form-control form-control-sm" [(ngModel)]="form.interest" min="0">
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label">Total a Cobrar *</label>
-                  <input type="number" class="form-control" [(ngModel)]="form.totalToCollect" min="0" required>
+                <div class="col-12 col-sm-4">
+                  <label class="form-label small">Total a Cobrar *</label>
+                  <input type="number" class="form-control form-control-sm" [(ngModel)]="form.totalToCollect" min="0" required>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label">Frecuencia de Pago</label>
-                  <select class="form-select" [(ngModel)]="form.paymentFrequency">
+                <div class="col-12 col-md-6">
+                  <label class="form-label small">Frecuencia de Pago</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="form.paymentFrequency">
                     <option value="daily">Diario</option>
                     <option value="weekly">Semanal</option>
                     <option value="biweekly">Quincenal</option>
@@ -218,14 +218,14 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
                   </select>
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Notas</label>
-                  <textarea class="form-control" [(ngModel)]="form.notes" rows="2"></textarea>
+                  <label class="form-label small">Notas</label>
+                  <textarea class="form-control form-control-sm" [(ngModel)]="form.notes" rows="2"></textarea>
                 </div>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-              <button type="button" class="btn btn-primary" (click)="saveLoan()">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="closeModal()">Cancelar</button>
+              <button type="button" class="btn btn-primary btn-sm" (click)="saveLoan()">
                 {{ editingLoan() ? 'Actualizar' : 'Guardar' }}
               </button>
             </div>
@@ -236,8 +236,8 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
 
     <!-- Payment Modal -->
     @if (showPaymentModal()) {
-      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog">
+      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Registrar Pago</h5>
@@ -245,29 +245,27 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
             </div>
             <div class="modal-body">
               @if (paymentLoan()) {
-                <div class="alert alert-info py-2 mb-3">
-                  <small>
-                    <strong>Cliente:</strong> {{ getPersonName(paymentLoan()!.personId) }}<br>
-                    <strong>Pendiente:</strong> {{ formatCurrency(getPending(paymentLoan()!)) }}
-                  </small>
+                <div class="alert alert-info py-2 mb-3 small">
+                  <strong>Cliente:</strong> {{ getPersonName(paymentLoan()!.personId) }}<br>
+                  <strong>Pendiente:</strong> {{ formatCurrency(getPending(paymentLoan()!)) }}
                 </div>
               }
               <div class="mb-3">
-                <label class="form-label">Monto *</label>
-                <input type="number" class="form-control" [(ngModel)]="paymentForm.amount" min="0" required>
+                <label class="form-label small">Monto *</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="paymentForm.amount" min="0" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Fecha *</label>
-                <input type="date" class="form-control" [(ngModel)]="paymentForm.date" required>
+                <label class="form-label small">Fecha *</label>
+                <input type="date" class="form-control form-control-sm" [(ngModel)]="paymentForm.date" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Notas</label>
-                <textarea class="form-control" [(ngModel)]="paymentForm.notes" rows="2"></textarea>
+                <label class="form-label small">Notas</label>
+                <textarea class="form-control form-control-sm" [(ngModel)]="paymentForm.notes" rows="2"></textarea>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="showPaymentModal.set(false)">Cancelar</button>
-              <button type="button" class="btn btn-success" (click)="savePayment()">Registrar Pago</button>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="showPaymentModal.set(false)">Cancelar</button>
+              <button type="button" class="btn btn-success btn-sm" (click)="savePayment()">Registrar Pago</button>
             </div>
           </div>
         </div>
@@ -276,19 +274,19 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
 
     <!-- Delete Confirmation -->
     @if (showDeleteConfirm()) {
-      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-sm">
+      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-sm">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">Confirmar Eliminacion</h5>
+              <h5 class="modal-title">Confirmar Eliminación</h5>
               <button type="button" class="btn-close" (click)="showDeleteConfirm.set(false)"></button>
             </div>
             <div class="modal-body">
-              <p>Esta seguro de eliminar este prestamo?</p>
+              <p class="mb-0 small">¿Está seguro de eliminar este préstamo?</p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="showDeleteConfirm.set(false)">Cancelar</button>
-              <button type="button" class="btn btn-danger" (click)="deleteLoan()">Eliminar</button>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="showDeleteConfirm.set(false)">Cancelar</button>
+              <button type="button" class="btn btn-danger btn-sm" (click)="deleteLoan()">Eliminar</button>
             </div>
           </div>
         </div>

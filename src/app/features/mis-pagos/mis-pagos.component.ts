@@ -26,8 +26,8 @@ import { Payment } from '../../core/models';
       <!-- Filter -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body py-2">
-          <div class="row align-items-center">
-            <div class="col-md-4">
+          <div class="row g-2 align-items-center">
+            <div class="col-12 col-sm-8 col-md-5">
               <input 
                 type="text" 
                 class="form-control form-control-sm" 
@@ -35,12 +35,15 @@ import { Payment } from '../../core/models';
                 [(ngModel)]="searchTerm"
               >
             </div>
-            <div class="col-md-3">
+            <div class="col-8 col-sm-4 col-md-3">
               <input 
                 type="date" 
                 class="form-control form-control-sm" 
                 [(ngModel)]="filterDate"
               >
+            </div>
+            <div class="col-4 col-sm-4 col-md-2" *ngIf="filterDate">
+              <button class="btn btn-sm btn-outline-secondary w-100" (click)="filterDate = ''">Limpiar</button>
             </div>
           </div>
         </div>
@@ -49,34 +52,32 @@ import { Payment } from '../../core/models';
       <!-- Payments Table -->
       <div class="card border-0 shadow-sm">
         <div class="table-responsive">
-          <table class="table table-hover mb-0">
+          <table class="table table-hover mb-0 table-sm align-middle">
             <thead class="table-light">
               <tr>
                 <th>Fecha</th>
                 <th>Cliente</th>
-                <th>Prestamo</th>
-                <th>Monto Pagado</th>
-                <th>Pendiente</th>
-                <th>Metodo</th>
-                <th class="text-end">Acciones</th>
+                <th class="d-none d-sm-table-cell">Préstamo</th>
+                <th class="text-end">Pagado</th>
+                <th class="d-none d-sm-table-cell text-end">Pendiente</th>
+                <th class="d-none d-md-table-cell">Método</th>
+                <th class="text-center">Acción</th>
               </tr>
             </thead>
             <tbody>
               @for (payment of filteredPayments(); track payment.id) {
                 <tr>
-                  <td>{{ formatDate(payment.date) }}</td>
+                  <td><small>{{ formatDate(payment.date) }}</small></td>
                   <td>
-                    <div class="fw-medium">{{ getPersonName(payment.loanId) }}</div>
+                    <div class="fw-medium small">{{ getPersonName(payment.loanId) }}</div>
                   </td>
-                  <td>{{ formatCurrency(getLoanAmount(payment.loanId)) }}</td>
-                  <td class="text-success fw-medium">{{ formatCurrency(payment.amount) }}</td>
-                  <td>{{ formatCurrency(getPendingForLoan(payment.loanId)) }}</td>
-                  <td>
-                    <span class="badge bg-secondary">Efectivo</span>
-                  </td>
-                  <td class="text-end">
-                    <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(payment)">
-                      <i class="bi bi-trash"></i>
+                  <td class="d-none d-sm-table-cell"><small>{{ formatCurrency(getLoanAmount(payment.loanId)) }}</small></td>
+                  <td class="text-success fw-medium text-end"><small>{{ formatCurrency(payment.amount) }}</small></td>
+                  <td class="d-none d-sm-table-cell text-end"><small>{{ formatCurrency(getPendingForLoan(payment.loanId)) }}</small></td>
+                  <td class="d-none d-md-table-cell"><span class="badge bg-secondary" style="font-size: 0.7rem;">Efectivo</span></td>
+                  <td class="text-center">
+                    <button class="btn btn-sm btn-outline-danger py-1 px-2" title="Eliminar" (click)="confirmDelete(payment)">
+                      <small>Eliminar</small>
                     </button>
                   </td>
                 </tr>
@@ -95,8 +96,8 @@ import { Payment } from '../../core/models';
 
     <!-- Modal -->
     @if (showModal()) {
-      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog">
+      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Registrar Pago</h5>
@@ -104,48 +105,46 @@ import { Payment } from '../../core/models';
             </div>
             <div class="modal-body">
               <div class="mb-3">
-                <label class="form-label">Prestamo *</label>
-                <select class="form-select" [(ngModel)]="form.loanId" (change)="onLoanChange()">
-                  <option value="">Seleccionar prestamo</option>
+                <label class="form-label small">Préstamo *</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.loanId" (change)="onLoanChange()">
+                  <option value="">Seleccionar préstamo</option>
                   @for (loan of activeLoans(); track loan.id) {
                     <option [value]="loan.id">
                       {{ getPersonNameByLoanId(loan.id) }} - {{ formatCurrency(loan.totalToCollect) }}
-                      (Pendiente: {{ formatCurrency(getPendingForLoan(loan.id)) }})
+                      (Pend: {{ formatCurrency(getPendingForLoan(loan.id)) }})
                     </option>
                   }
                 </select>
               </div>
               @if (form.loanId) {
-                <div class="alert alert-info py-2">
-                  <small>
-                    <strong>Pendiente:</strong> {{ formatCurrency(getPendingForLoan(form.loanId)) }}
-                  </small>
+                <div class="alert alert-info py-2 small">
+                  <strong>Pendiente:</strong> {{ formatCurrency(getPendingForLoan(form.loanId)) }}
                 </div>
               }
               <div class="mb-3">
-                <label class="form-label">Monto *</label>
-                <input type="number" class="form-control" [(ngModel)]="form.amount" min="0" required>
+                <label class="form-label small">Monto *</label>
+                <input type="number" class="form-control form-control-sm" [(ngModel)]="form.amount" min="0" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Fecha *</label>
-                <input type="date" class="form-control" [(ngModel)]="form.date" required>
+                <label class="form-label small">Fecha *</label>
+                <input type="date" class="form-control form-control-sm" [(ngModel)]="form.date" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Metodo de Pago</label>
-                <select class="form-select" [(ngModel)]="form.paymentMethod">
+                <label class="form-label small">Método de Pago</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.paymentMethod">
                   <option value="cash">Efectivo</option>
                   <option value="transfer">Transferencia</option>
                   <option value="card">Tarjeta</option>
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Notas</label>
-                <textarea class="form-control" [(ngModel)]="form.notes" rows="2"></textarea>
+                <label class="form-label small">Notas</label>
+                <textarea class="form-control form-control-sm" [(ngModel)]="form.notes" rows="2"></textarea>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
-              <button type="button" class="btn btn-primary" (click)="savePayment()">Guardar</button>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="closeModal()">Cancelar</button>
+              <button type="button" class="btn btn-primary btn-sm" (click)="savePayment()">Guardar</button>
             </div>
           </div>
         </div>
@@ -154,19 +153,19 @@ import { Payment } from '../../core/models';
 
     <!-- Delete Confirmation -->
     @if (showDeleteConfirm()) {
-      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog modal-sm">
+      <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); z-index: 1050;">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-sm">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">Confirmar Eliminacion</h5>
+              <h5 class="modal-title">Confirmar Eliminación</h5>
               <button type="button" class="btn-close" (click)="showDeleteConfirm.set(false)"></button>
             </div>
             <div class="modal-body">
-              <p>Esta seguro de eliminar este pago?</p>
+              <p class="mb-0 small">¿Está seguro de eliminar este pago?</p>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="showDeleteConfirm.set(false)">Cancelar</button>
-              <button type="button" class="btn btn-danger" (click)="deletePayment()">Eliminar</button>
+              <button type="button" class="btn btn-secondary btn-sm" (click)="showDeleteConfirm.set(false)">Cancelar</button>
+              <button type="button" class="btn btn-danger btn-sm" (click)="deletePayment()">Eliminar</button>
             </div>
           </div>
         </div>
