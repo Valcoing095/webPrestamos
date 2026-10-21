@@ -8,43 +8,31 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="input-group">
-      <span class="input-group-text bg-white border-end-0">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-muted" viewBox="0 0 16 16">
-          <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-        </svg>
-      </span>
-      <input 
-        type="text" 
-        class="form-control border-start-0" 
+    <div class="relative w-full max-w-xs">
+      <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/>
+      </svg>
+      <input
+        type="text"
+        class="form-input !pl-10 !pr-9"
         [placeholder]="placeholder"
         [(ngModel)]="searchTerm"
         (ngModelChange)="onSearchChange($event)"
-      >
+        aria-label="Buscar"
+      />
       @if (searchTerm) {
-        <button class="btn btn-outline-secondary border-start-0" type="button" (click)="clearSearch()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-          </svg>
+        <button
+          type="button"
+          class="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          (click)="clearSearch()"
+          aria-label="Limpiar búsqueda"
+        >
+          <span class="text-base leading-none">×</span>
         </button>
       }
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-    .input-group {
-      max-width: 300px;
-    }
-    .form-control:focus {
-      box-shadow: none;
-      border-color: #ced4da;
-    }
-    .input-group-text {
-      border-color: #ced4da;
-    }
-  `]
+  styles: [`:host { display: block; }`],
 })
 export class SearchInputComponent implements OnInit, OnDestroy {
   @Input() placeholder: string = 'Buscar...';
@@ -56,13 +44,9 @@ export class SearchInputComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
-    this.searchSubject.pipe(
-      debounceTime(this.debounceMs),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(term => {
-      this.search.emit(term);
-    });
+    this.searchSubject
+      .pipe(debounceTime(this.debounceMs), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(term => this.search.emit(term));
   }
 
   ngOnDestroy(): void {

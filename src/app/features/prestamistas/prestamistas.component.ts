@@ -35,7 +35,7 @@ import { Lender, Route } from '../../core/models';
           <div class="card border-0 shadow-sm bg-success text-white h-100">
             <div class="card-body p-3 p-md-4">
               <h6 class="card-subtitle mb-1 opacity-75 small">Capital Total</h6>
-              <h3 class="mb-0 h5 h3-md">{{ formatCurrency(totalCapital()) }}</h3>
+              <h3 class="amount mb-0 h5 h3-md">{{ formatCurrency(totalCapital()) }}</h3>
             </div>
           </div>
         </div>

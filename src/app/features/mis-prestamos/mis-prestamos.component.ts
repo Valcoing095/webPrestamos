@@ -1,16 +1,18 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { LoanService, LoanCalculator } from '../../core/services/loan.service';
+import { MoraService, MoraAlert } from '../../core/services/mora.service';
 import { PersonService } from '../../core/services/person.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Loan, Person, PaymentFrequency } from '../../core/models';
+import { Loan, Person, Payment, PaymentFrequency } from '../../core/models';
 
 @Component({
   selector: 'app-mis-prestamos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="space-y-6 animate-fadeIn">
       <!-- Header -->
@@ -32,44 +34,70 @@ import { Loan, Person, PaymentFrequency } from '../../core/models';
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Prestado</p>
-          <p class="text-xl font-bold text-slate-800 mt-2">{{ formatCurrency(stats().totalLoaned) }}</p>
+        <div class="min-w-0 bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-sm">
+          <p class="truncate text-[11px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Total Prestado</p>
+          <p class="amount text-base sm:text-xl xl:text-2xl font-bold text-slate-800 mt-2" [title]="formatCurrency(stats().totalLoaned)">{{ formatCurrency(stats().totalLoaned) }}</p>
         </div>
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Cobrado</p>
-          <p class="text-xl font-bold text-emerald-600 mt-2">{{ formatCurrency(stats().totalCollected) }}</p>
+        <div class="min-w-0 bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-sm">
+          <p class="truncate text-[11px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Cobrado</p>
+          <p class="amount text-base sm:text-xl xl:text-2xl font-bold text-emerald-600 mt-2" [title]="formatCurrency(stats().totalCollected)">{{ formatCurrency(stats().totalCollected) }}</p>
         </div>
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Pendiente</p>
-          <p class="text-xl font-bold text-amber-600 mt-2">{{ formatCurrency(stats().totalPending) }}</p>
+        <div class="min-w-0 bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-sm">
+          <p class="truncate text-[11px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Pendiente</p>
+          <p class="amount text-base sm:text-xl xl:text-2xl font-bold text-amber-600 mt-2" [title]="formatCurrency(stats().totalPending)">{{ formatCurrency(stats().totalPending) }}</p>
         </div>
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Activos</p>
-          <p class="text-xl font-bold text-slate-800 mt-2">{{ stats().activeCount }}</p>
+        <div class="min-w-0 bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-sm">
+          <p class="truncate text-[11px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Activos</p>
+          <p class="amount text-base sm:text-xl xl:text-2xl font-bold text-slate-800 mt-2">{{ stats().activeCount }}</p>
         </div>
       </div>
 
-      <!-- Filter -->
+      <!-- Filtros: cliente, texto y estado -->
       <div class="bg-white rounded-xl p-4 border border-slate-100 shadow-sm">
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="flex-1">
-            <input 
-              type="text" 
-              class="w-full px-4 py-2.5 bg-slate-50 border-0 rounded-lg text-sm placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div class="relative flex-1">
+            <svg class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/>
+            </svg>
+            <input
+              type="text"
+              class="w-full py-2.5 pl-10 pr-4 bg-slate-50 border-0 rounded-lg text-sm placeholder-slate-400 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
               placeholder="Buscar por cliente..."
-              [(ngModel)]="searchTerm"
+              [ngModel]="searchTerm()"
+              (ngModelChange)="searchTerm.set($event)"
             >
           </div>
-          <select 
-            class="px-4 py-2.5 bg-slate-50 border-0 rounded-lg text-sm text-slate-700 focus:ring-2 focus:ring-blue-500/20"
-            [(ngModel)]="filterStatus"
+          <select
+            class="form-select !w-auto min-w-48 bg-slate-50 !border-0 text-sm"
+            [ngModel]="filterPersonId()"
+            (ngModelChange)="filterPersonId.set($event)"
+            aria-label="Filtrar por cliente"
           >
-            <option value="all">Todos</option>
+            <option value="all">Todos los clientes</option>
+            @for (person of clientsWithLoans(); track person.id) {
+              <option [value]="person.id">{{ person.name }}</option>
+            }
+          </select>
+          <select
+            class="form-select !w-auto min-w-36 bg-slate-50 !border-0 text-sm"
+            [ngModel]="filterStatus()"
+            (ngModelChange)="filterStatus.set($event)"
+            aria-label="Filtrar por estado"
+          >
+            <option value="all">Todos los estados</option>
             <option value="active">Activos</option>
             <option value="completed">Completados</option>
           </select>
+          @if (hasActiveFilters()) {
+            <button class="btn btn-ghost btn-sm shrink-0" (click)="clearFilters()">Limpiar filtros</button>
+          }
         </div>
+        <p class="mt-3 text-xs text-slate-400">
+          Mostrando <span class="font-semibold text-slate-600">{{ filteredLoans().length }}</span> de {{ loans().length }} préstamos
+          @if (filterPersonId() !== 'all') {
+            · Cliente: <span class="font-semibold text-brand-600">{{ selectedClientName() }}</span>
+          }
+        </p>
       </div>
 
       <!-- Table -->
@@ -90,7 +118,7 @@ import { Loan, Person, PaymentFrequency } from '../../core/models';
             </thead>
             <tbody class="divide-y divide-slate-50">
               @for (loan of filteredLoans(); track loan.id) {
-                <tr class="hover:bg-slate-50/50 transition-colors">
+                <tr class="hover:bg-slate-50/50 transition-colors" [class.bg-brand-50/60]="selectedLoan()?.id === loan.id">
                   <td class="px-6 py-4">
                     <p class="text-sm font-medium text-slate-800">{{ getPersonName(loan.personId) }}</p>
                     <p class="text-xs text-slate-400">{{ formatDate(loan.date) }}</p>
@@ -106,16 +134,34 @@ import { Loan, Person, PaymentFrequency } from '../../core/models';
                   </td>
                   <td class="px-6 py-4">
                     @if (isCompleted(loan)) {
-                      <span class="inline-flex px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 rounded-full">Completado</span>
+                      <span class="inline-flex whitespace-nowrap px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 rounded-full">Completado</span>
+                    } @else if (moraByLoan().get(loan.id); as mora) {
+                      @if (mora.isDueToday) {
+                        <span class="inline-flex whitespace-nowrap px-2.5 py-1 text-xs font-semibold bg-sky-50 text-sky-700 rounded-full">Vence hoy</span>
+                      } @else {
+                        <span class="inline-flex whitespace-nowrap px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-700 rounded-full">En mora · {{ mora.daysOverdue }}d</span>
+                      }
                     } @else {
-                      <span class="inline-flex px-2.5 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">Activo</span>
+                      <span class="inline-flex whitespace-nowrap px-2.5 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">Activo</span>
                     }
                   </td>
                   <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-1">
-                      <button 
+                      <button
+                        class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium transition-colors"
+                        [class]="selectedLoan()?.id === loan.id ? 'bg-brand-600 text-white hover:bg-brand-700' : 'text-brand-600 hover:bg-brand-50'"
+                        (click)="viewPaymentHistory(loan)"
+                        title="Ver historial de pagos de esta deuda"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                        </svg>
+                        Pagos · {{ getPaymentsCount(loan.id) }}
+                      </button>
+                      <button
                         class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                         (click)="editLoan(loan)"
+                        title="Editar préstamo"
                       >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -134,8 +180,12 @@ import { Loan, Person, PaymentFrequency } from '../../core/models';
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="8" class="px-6 py-12 text-center text-sm text-slate-400">
-                    No hay prestamos registrados
+                  <td colspan="8" class="px-6 py-12 text-center">
+                    <p class="text-sm font-medium text-slate-500">No se encontraron préstamos con esos filtros</p>
+                    <p class="mt-1 text-xs text-slate-400">Prueba con otro cliente o limpia los filtros.</p>
+                    @if (hasActiveFilters()) {
+                      <button class="btn btn-outline btn-sm mt-4" (click)="clearFilters()">Limpiar filtros</button>
+                    }
                   </td>
                 </tr>
               }
@@ -143,6 +193,103 @@ import { Loan, Person, PaymentFrequency } from '../../core/models';
           </table>
         </div>
       </div>
+
+      <!-- Historial de pagos de la deuda seleccionada -->
+      @if (selectedLoan(); as loan) {
+        <section id="historial-pagos" class="animate-fadeIn overflow-hidden rounded-xl border border-brand-100 bg-white shadow-sm" aria-label="Historial de pagos">
+          <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-brand-50/80 to-transparent px-5 py-4 sm:px-6">
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-600">Historial de pagos</p>
+              <h3 class="mt-0.5 truncate text-lg font-bold text-slate-900">{{ getPersonName(loan.personId) }}</h3>
+              <p class="text-xs text-slate-500">
+                Préstamo {{ loan.id.substring(0, 8).toUpperCase() }} · {{ formatDate(loan.date) }} · {{ getFrequencyLabel(loan.paymentFrequency) }}
+              </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <a routerLink="/mis-pagos" class="btn btn-primary btn-sm">Registrar pago</a>
+              <button class="grid h-9 w-9 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" (click)="closePaymentHistory()" aria-label="Cerrar historial">
+                <span class="text-xl leading-none">×</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Resumen de la deuda -->
+          <div class="grid grid-cols-2 gap-3 px-5 py-4 sm:px-6 lg:grid-cols-4">
+            <div class="rounded-xl bg-slate-50 p-3.5">
+              <p class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Prestado</p>
+              <p class="amount mt-1 text-base font-bold text-slate-800">{{ formatCurrency(loan.amount) }}</p>
+            </div>
+            <div class="rounded-xl bg-slate-50 p-3.5">
+              <p class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Total a cobrar</p>
+              <p class="amount mt-1 text-base font-bold text-slate-800">{{ formatCurrency(loan.totalToCollect || loan.amount) }}</p>
+            </div>
+            <div class="rounded-xl bg-emerald-50 p-3.5">
+              <p class="text-[11px] font-medium uppercase tracking-wider text-emerald-500">Pagado ({{ selectedLoanPayments().length }})</p>
+              <p class="amount mt-1 text-base font-bold text-emerald-600">{{ formatCurrency(getTotalPaid(loan.id)) }}</p>
+            </div>
+            <div class="rounded-xl bg-amber-50 p-3.5">
+              <p class="text-[11px] font-medium uppercase tracking-wider text-amber-500">Pendiente</p>
+              <p class="amount mt-1 text-base font-bold text-amber-600">{{ formatCurrency(getPending(loan)) }}</p>
+            </div>
+          </div>
+          @if (moraByLoan().get(loan.id); as mora) {
+            <div class="px-5 sm:px-6">
+              <p class="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium animate-fadeIn"
+                 [class]="mora.isDueToday ? 'bg-sky-50 text-sky-700' : 'bg-red-50 text-red-700'">
+                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.94 4h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+                @if (mora.isDueToday) {
+                  El siguiente pago de esta deuda vence hoy ({{ formatDate(mora.nextDueDate) }}).
+                } @else {
+                  Esta deuda está en mora: {{ mora.daysOverdue }} día{{ mora.daysOverdue === 1 ? '' : 's' }} de atraso · {{ mora.missedPayments }} cuota(s) vencida(s) · debía pagar el {{ formatDate(mora.nextDueDate) }}.
+                }
+              </p>
+            </div>
+          }
+          <div class="px-5 pt-3 sm:px-6">
+            <div class="flex justify-between text-xs text-slate-400">
+              <span>Progreso de la deuda</span>
+              <span class="font-semibold text-slate-600">{{ loanProgress(loan) }}%</span>
+            </div>
+            <div class="progress mt-1.5"><div class="progress-bar" [style.width.%]="loanProgress(loan)"></div></div>
+          </div>
+
+          <!-- Pagos -->
+          @if (selectedLoanPayments().length > 0) {
+            <ol class="relative space-y-0 px-5 py-5 sm:px-6">
+              @for (entry of selectedLoanPayments(); track entry.payment.id; let i = $index) {
+                <li class="relative flex gap-4 pb-5 last:pb-0 animate-fadeIn" [style.animation-delay.ms]="i * 45">
+                  <div class="flex flex-col items-center">
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m5 13 4 4L19 7"/></svg>
+                    </span>
+                    @if (i < selectedLoanPayments().length - 1) {
+                      <span class="mt-1 w-px flex-1 bg-slate-100"></span>
+                    }
+                  </div>
+                  <div class="min-w-0 flex-1 rounded-xl border border-slate-100 px-4 py-3">
+                    <div class="flex flex-wrap items-baseline justify-between gap-2">
+                      <p class="text-sm font-bold text-emerald-600">+ {{ formatCurrency(entry.payment.amount) }}</p>
+                      <p class="text-xs text-slate-400">{{ formatDate(entry.payment.date) }}</p>
+                    </div>
+                    <p class="mt-0.5 text-xs text-slate-500">
+                      Saldo tras este pago: <span class="font-semibold text-slate-700">{{ formatCurrency(entry.balanceAfter) }}</span>
+                    </p>
+                    @if (entry.payment.notes) {
+                      <p class="mt-1 truncate text-xs italic text-slate-400" [title]="entry.payment.notes">“{{ entry.payment.notes }}”</p>
+                    }
+                  </div>
+                </li>
+              }
+            </ol>
+          } @else {
+            <div class="px-6 py-10 text-center">
+              <p class="text-sm font-medium text-slate-500">Esta deuda aún no tiene pagos registrados</p>
+              <p class="mt-1 text-xs text-slate-400">Cuando registres el primer abono aparecerá aquí, con su saldo.</p>
+              <a routerLink="/mis-pagos" class="btn btn-primary btn-sm mt-4">Registrar el primer pago</a>
+            </div>
+          }
+        </section>
+      }
     </div>
 
     <!-- Modal -->
@@ -243,13 +390,20 @@ export class MisPrestamosComponent implements OnInit {
   private personService = inject(PersonService);
   private paymentService = inject(PaymentService);
   private authService = inject(AuthService);
+  private moraService = inject(MoraService);
 
   showModal = signal(false);
   showDeleteConfirm = signal(false);
   editingLoan = signal<Loan | null>(null);
   loanToDelete = signal<Loan | null>(null);
-  searchTerm = '';
-  filterStatus = 'all';
+
+  // Filtros (signals para que la lista se actualice al instante)
+  searchTerm = signal('');
+  filterPersonId = signal('all');
+  filterStatus = signal('all');
+
+  // Deuda seleccionada para ver su historial de pagos
+  selectedLoan = signal<Loan | null>(null);
 
   form = {
     personId: '',
@@ -273,25 +427,78 @@ export class MisPrestamosComponent implements OnInit {
     return this.personService.getByUserId(userId);
   });
 
+  /** Clientes que tienen al menos un préstamo propio (para el filtro) */
+  clientsWithLoans = computed(() => {
+    const ids = new Set(this.loans().map(l => l.personId));
+    return this.persons()
+      .filter(p => ids.has(p.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  selectedClientName = computed(() => {
+    const id = this.filterPersonId();
+    return id === 'all' ? '' : (this.persons().find(p => p.id === id)?.name ?? '');
+  });
+
+  hasActiveFilters = computed(() =>
+    this.searchTerm().trim() !== '' || this.filterPersonId() !== 'all' || this.filterStatus() !== 'all',
+  );
+
   filteredLoans = computed(() => {
     let result = this.loans();
 
-    if (this.searchTerm) {
-      const term = this.searchTerm.toLowerCase();
+    const personId = this.filterPersonId();
+    if (personId !== 'all') {
+      result = result.filter(loan => loan.personId === personId);
+    }
+
+    const term = this.searchTerm().trim().toLowerCase();
+    if (term) {
       result = result.filter(loan => {
         const person = this.personService.getById(loan.personId);
         return person?.name.toLowerCase().includes(term);
       });
     }
 
-    if (this.filterStatus !== 'all') {
+    const status = this.filterStatus();
+    if (status !== 'all') {
       result = result.filter(loan => {
         const isCompleted = this.isCompleted(loan);
-        return this.filterStatus === 'completed' ? isCompleted : !isCompleted;
+        return status === 'completed' ? isCompleted : !isCompleted;
       });
     }
 
     return result;
+  });
+
+  /**
+   * Pagos de la deuda seleccionada, del más reciente al más antiguo,
+   * con el saldo que quedaba justo después de cada pago.
+   */
+  selectedLoanPayments = computed(() => {
+    const loan = this.selectedLoan();
+    if (!loan) return [] as { payment: Payment; balanceAfter: number }[];
+
+    const total = loan.totalToCollect || loan.amount;
+    const ascending = [...this.paymentService.getByLoanId(loan.id)].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+    let paidSoFar = 0;
+    const withBalance = ascending.map(payment => {
+      paidSoFar += payment.amount;
+      return { payment, balanceAfter: Math.max(0, total - paidSoFar) };
+    });
+    return withBalance.reverse();
+  });
+
+  /** Alerta de mora por préstamo (clave: id del préstamo) */
+  moraByLoan = computed(() => {
+    const map = new Map<string, MoraAlert>();
+    for (const loan of this.loans()) {
+      const alert = this.moraService.getLoanAlert(loan);
+      if (alert) map.set(loan.id, alert);
+    }
+    return map;
   });
 
   stats = computed(() => {
@@ -308,6 +515,38 @@ export class MisPrestamosComponent implements OnInit {
 
   getPersonName(personId: string): string {
     return this.personService.getById(personId)?.name || 'Desconocido';
+  }
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.filterPersonId.set('all');
+    this.filterStatus.set('all');
+  }
+
+  getPaymentsCount(loanId: string): number {
+    return this.paymentService.getByLoanId(loanId).length;
+  }
+
+  loanProgress(loan: Loan): number {
+    const total = loan.totalToCollect || loan.amount;
+    if (total <= 0) return 0;
+    return Math.min(100, Math.round((this.getTotalPaid(loan.id) / total) * 100));
+  }
+
+  viewPaymentHistory(loan: Loan): void {
+    if (this.selectedLoan()?.id === loan.id) {
+      this.selectedLoan.set(null);
+      return;
+    }
+    this.selectedLoan.set(loan);
+    // Llevar la vista hasta el historial recién abierto
+    setTimeout(() => {
+      document.getElementById('historial-pagos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  }
+
+  closePaymentHistory(): void {
+    this.selectedLoan.set(null);
   }
 
   getTotalPaid(loanId: string): number {
@@ -407,6 +646,9 @@ export class MisPrestamosComponent implements OnInit {
     const loan = this.loanToDelete();
     if (loan) {
       this.loanService.deleteCascade(loan.id);
+      if (this.selectedLoan()?.id === loan.id) {
+        this.selectedLoan.set(null);
+      }
     }
     this.showDeleteConfirm.set(false);
     this.loanToDelete.set(null);

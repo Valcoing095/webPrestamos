@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, PLATFORM_ID, Inject, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BaseChartDirective } from 'ng2-charts';
+import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { AuthService } from '../../core/services/auth.service';
 import { LoanService, LoanCalculator } from '../../core/services/loan.service';
@@ -14,6 +14,8 @@ import { RouteService } from '../../core/services/route.service';
   selector: 'app-seguimiento',
   standalone: true,
   imports: [CommonModule, FormsModule, BaseChartDirective],
+  // Chart.js solo se carga con esta ruta (lazy), no en el bundle inicial
+  providers: [provideCharts(withDefaultRegisterables())],
   template: `
     <div class="container-fluid px-4 py-4">
       <header class="mb-4">
@@ -66,7 +68,7 @@ import { RouteService } from '../../core/services/route.service';
                 </div>
                 <div class="ms-2 ms-md-3">
                   <p class="text-muted mb-0" style="font-size: 0.65rem;">Mora Total</p>
-                  <h6 class="mb-0 h6 h5-md">{{ formatCurrency(totalMora()) }}</h6>
+                  <h6 class="amount mb-0 h6 h5-md">{{ formatCurrency(totalMora()) }}</h6>
                 </div>
               </div>
             </div>

@@ -19,7 +19,8 @@ export class DataService<T extends { id: string }> {
 
   protected saveAll(items: T[]): void {
     this.storage.set(this.storageKey, items);
-    this.dataSignal.set(items);
+    // Nueva referencia: los signals/computed detectan el cambio y la UI se refresca
+    this.dataSignal.set([...items]);
   }
 
   getDataSignal(): Signal<T[]> {
@@ -31,9 +32,7 @@ export class DataService<T extends { id: string }> {
   }
 
   add(item: T): T {
-    const items = this.getAll();
-    items.push(item);
-    this.saveAll(items);
+    this.saveAll([...this.getAll(), item]);
     return item;
   }
 
@@ -48,9 +47,11 @@ export class DataService<T extends { id: string }> {
 
     if (index === -1) return null;
 
-    items[index] = { ...items[index], ...data };
-    this.saveAll(items);
-    return items[index];
+    const updated = { ...items[index], ...data };
+    const next = [...items];
+    next[index] = updated;
+    this.saveAll(next);
+    return updated;
   }
 
   delete(id: string): boolean {

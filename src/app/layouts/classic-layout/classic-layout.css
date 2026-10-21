@@ -1,14 +1,60 @@
-/* /src/app/layouts/classic-layout/classic-layout.css */
-
 :host {
   display: block;
 }
 
-/* Reset some Bootstrap styles if needed */
-.flex {
+/* Enlace de navegación del sidebar */
+.nav-link {
+  position: relative;
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem 0.625rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(199, 210, 254, 0.75);
+  transition: background-color 0.2s, color 0.2s, transform 0.2s cubic-bezier(.22, 1, .36, 1);
 }
 
-.h-screen {
-  height: 100vh;
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  transform: translateX(2px);
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0.35rem;
+  top: 50%;
+  width: 3px;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: #a5b4fc;
+  transform: translateY(-50%) scaleY(0);
+  transition: transform 0.22s cubic-bezier(.22, 1, .36, 1);
+}
+
+.nav-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.nav-active::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+.sidebar-scroll::-webkit-scrollbar { width: 5px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fadeIn { animation: fade-in 0.18s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link, .nav-link::before { transition: none; }
 }

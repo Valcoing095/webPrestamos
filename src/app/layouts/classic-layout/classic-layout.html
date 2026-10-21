@@ -1,157 +1,195 @@
-<!-- /src/app/layouts/classic-layout/classic-layout.html -->
-<div class="flex min-h-screen bg-slate-50">
-  <!-- Sidebar -->
-  <aside 
-    class="fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 transform transition-transform duration-300 ease-out lg:translate-x-0 lg:static lg:w-64"
-    [class.-translate-x-full]="!sidebarOpen"
-    [class.translate-x-0]="sidebarOpen"
+<div class="min-h-dvh lg:flex">
+  <!-- ===== Barra lateral ===== -->
+  <aside
+    class="fixed inset-y-0 left-0 z-40 flex w-72 flex-col text-white shadow-2xl transition-transform duration-300 ease-out lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:shadow-none"
+    style="background: linear-gradient(180deg, #171233 0%, #1e1b4b 55%, #252158 100%); transition-timing-function: cubic-bezier(.22,1,.36,1);"
+    [class.-translate-x-full]="!sidebarOpen()"
+    [class.translate-x-0]="sidebarOpen()"
+    aria-label="Navegación principal"
   >
-    <!-- Logo -->
-    <div class="flex items-center h-16 px-6 border-b border-slate-800">
-      <h1 class="text-lg font-semibold text-white tracking-tight">Prestamos</h1>
+    <!-- Marca -->
+    <div class="flex h-16 items-center gap-3 border-b border-white/10 px-5">
+      <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-700 shadow-glow">
+        <ng-icon name="featherDollarSign" class="text-xl text-white"></ng-icon>
+      </span>
+      <span class="min-w-0">
+        <span class="block truncate text-base font-bold leading-tight tracking-tight">PrestaFlow</span>
+        <span class="block text-[11px] leading-tight text-indigo-200/70">Gestor de préstamos</span>
+      </span>
+      <button
+        class="ml-auto grid h-9 w-9 place-items-center rounded-lg text-indigo-200 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
+        (click)="closeSidebar()"
+        aria-label="Cerrar menú"
+      >
+        <span class="text-xl leading-none">×</span>
+      </button>
     </div>
-    
-    <!-- Navigation -->
-    <nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-      <!-- Dashboard -->
-      <a 
-        routerLink="/dashboard" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherHome" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Dashboard</span>
-      </a>
-      
-      <!-- Seccion: Gestion Propia -->
-      <div class="pt-6 pb-2">
-        <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Gestion Propia</p>
-      </div>
-      
-      <a 
-        routerLink="/mis-prestamos" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherDollarSign" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Mis Prestamos</span>
-      </a>
-      
-      <a 
-        routerLink="/mis-pagos" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherCreditCard" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Mis Pagos</span>
-      </a>
-      
-      <a 
-        routerLink="/clientes" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherUsers" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Clientes</span>
-      </a>
-      
-      <!-- Seccion: Prestamistas y Rutas -->
-      <div class="pt-6 pb-2">
-        <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Prestamistas</p>
-      </div>
-      
-      <a 
-        routerLink="/prestamistas" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherUser" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Prestamistas</span>
-      </a>
-      
-      <a 
-        routerLink="/rutas" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherMap" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Rutas</span>
-      </a>
-      
-      <a 
-        routerLink="/prestamos-prestamistas" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherDollarSign" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Por Ruta</span>
-      </a>
-      
-      <a 
-        routerLink="/liquidacion" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherFileText" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Liquidacion</span>
-      </a>
-      
-      <!-- Seccion: Reportes -->
-      <div class="pt-6 pb-2">
-        <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Reportes</p>
-      </div>
-      
-      <a 
-        routerLink="/seguimiento" 
-        routerLinkActive="bg-slate-800 text-white"
-        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200"
-        (click)="closeIfMobile()"
-      >
-        <ng-icon name="featherTrendingUp" class="text-lg"></ng-icon>
-        <span class="text-sm font-medium">Seguimiento</span>
-      </a>
+
+    <!-- Navegación por flujo -->
+    <nav class="sidebar-scroll flex-1 overflow-y-auto px-3 py-4">
+      @for (section of sections; track section.label) {
+        <p class="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-200/50 first:pt-1">
+          {{ section.label }}
+        </p>
+        <ul class="space-y-1">
+          @for (item of section.items; track item.path) {
+            <li>
+              <a
+                [routerLink]="item.path"
+                routerLinkActive="nav-active"
+                class="nav-link group"
+              >
+                <ng-icon [name]="item.icon" class="shrink-0 text-lg transition-transform duration-200 group-hover:scale-110"></ng-icon>
+                <span class="truncate">{{ item.label }}</span>
+                @if (item.path === '/alertas' && overdueCount() > 0) {
+                  <span class="ml-auto shrink-0 rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold leading-none text-white">{{ overdueCount() }}</span>
+                }
+              </a>
+            </li>
+          }
+        </ul>
+      }
     </nav>
+
+    <!-- Acción rápida -->
+    <div class="p-4">
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <p class="text-sm font-semibold">¿Cobraste hoy?</p>
+        <p class="mt-1 text-xs leading-relaxed text-indigo-200/70">Registra el pago en segundos y mantén tu cartera al día.</p>
+        <a routerLink="/mis-pagos" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-50 active:scale-[.98]">
+          <ng-icon name="featherPlus" class="text-base"></ng-icon>
+          Registrar pago
+        </a>
+      </div>
+      <p class="mt-4 text-center text-[11px] text-indigo-200/40">PrestaFlow · Tus datos se guardan en este dispositivo</p>
+    </div>
   </aside>
 
-  <!-- Overlay for mobile -->
-  <div 
-    *ngIf="sidebarOpen" 
-    class="fixed inset-0 z-20 bg-slate-900/50 backdrop-blur-sm lg:hidden"
-    (click)="closeSidebar()"
-  ></div>
+  <!-- Fondo para el menú móvil -->
+  @if (sidebarOpen()) {
+    <div class="fixed inset-0 z-30 bg-slate-950/50 backdrop-blur-[2px] animate-fadeIn lg:hidden" (click)="closeSidebar()"></div>
+  }
 
-  <!-- Main Content -->
-  <div class="flex-1 flex flex-col min-h-screen lg:ml-0 overflow-y-auto">
-    <!-- Top Navbar -->
-    <header class="sticky top-0 z-10 flex items-center h-16 px-4 bg-white/80 backdrop-blur-md border-b border-slate-100">
-      <button 
-        class="p-2 -ml-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors lg:hidden"
-        (click)="toggleSidebar($event)"
-      >
-        <ng-icon name="featherMenu" class="text-xl"></ng-icon>
-      </button>
-      
-      <div class="flex-1"></div>
-      
-      <div class="flex items-center gap-3">
-        <span class="text-sm font-medium text-slate-600">Usuario</span>
-        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-          <ng-icon name="featherUser" class="text-slate-500"></ng-icon>
+  <!-- ===== Columna principal ===== -->
+  <div class="flex min-h-dvh min-w-0 flex-1 flex-col">
+    <header class="sticky top-0 z-20 border-b border-slate-200/70 bg-white/75 backdrop-blur-md">
+      <div class="mx-auto flex h-16 w-full max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+        <button
+          class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-slate-600 transition hover:bg-slate-100 lg:hidden"
+          (click)="toggleSidebar($event)"
+          aria-label="Abrir menú"
+        >
+          <ng-icon name="featherMenu" class="text-xl"></ng-icon>
+        </button>
+
+        <div class="min-w-0">
+          @if (pageSection()) {
+            <p class="hidden text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600 sm:block">{{ pageSection() }}</p>
+          }
+          <h1 class="truncate text-lg font-bold leading-tight text-slate-900">{{ pageTitle() }}</h1>
+        </div>
+
+        <div class="flex-1"></div>
+
+        <!-- Campana de alertas de mora -->
+        <div class="relative">
+          <button
+            class="relative grid h-10 w-10 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            (click)="toggleAlerts($event)"
+            aria-haspopup="true"
+            [attr.aria-expanded]="alertsOpen()"
+            aria-label="Alertas de mora"
+          >
+            <ng-icon name="featherBell" class="text-xl"></ng-icon>
+            @if (overdueCount() > 0) {
+              <span class="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">{{ overdueCount() }}</span>
+            }
+          </button>
+
+          @if (alertsOpen()) {
+            <div class="absolute right-0 top-full z-30 mt-2 w-80 max-w-[calc(100vw-2rem)] origin-top-right animate-scaleIn overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-lift">
+              <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                <p class="text-sm font-bold text-slate-800">Alertas de mora</p>
+                @if (moraAlerts().length > 0) {
+                  <span class="badge bg-red-50 text-red-700">{{ moraAlerts().length }}</span>
+                }
+              </div>
+              @if (topAlerts().length > 0) {
+                <ul class="max-h-72 overflow-y-auto py-1">
+                  @for (alert of topAlerts(); track alert.loan.id) {
+                    <li>
+                      <a routerLink="/alertas" class="flex items-center gap-3 px-4 py-2.5 transition hover:bg-slate-50">
+                        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold"
+                              [class]="alert.isDueToday ? 'bg-sky-100 text-sky-600' : alert.severity === 'high' ? 'bg-red-100 text-red-600' : alert.severity === 'medium' ? 'bg-orange-100 text-orange-600' : 'bg-amber-100 text-amber-600'">
+                          {{ alert.personName.charAt(0).toUpperCase() }}
+                        </span>
+                        <span class="min-w-0 flex-1 leading-tight">
+                          <span class="block truncate text-sm font-semibold text-slate-800">{{ alert.personName }}</span>
+                          <span class="block text-xs" [class]="alert.isDueToday ? 'text-sky-600' : 'text-red-500'">{{ alertBadgeText(alert) }}</span>
+                        </span>
+                        <span class="amount shrink-0 text-sm font-bold text-slate-700">{{ formatCurrency(alert.pendingAmount) }}</span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+                <a routerLink="/alertas" class="block border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 text-center text-sm font-semibold text-brand-600 transition hover:bg-brand-50">
+                  Ver todas las alertas →
+                </a>
+              } @else {
+                <p class="px-4 py-6 text-center text-sm text-slate-400">Sin deudas en mora. Todo al día.</p>
+              }
+            </div>
+          }
+        </div>
+
+        <a routerLink="/mis-prestamos" class="btn btn-primary hidden !rounded-xl sm:inline-flex">
+          <ng-icon name="featherPlus" class="text-base"></ng-icon>
+          Nuevo préstamo
+        </a>
+
+        <!-- Usuario -->
+        <div class="relative">
+          <button
+            class="flex items-center gap-2.5 rounded-xl py-1.5 pl-1.5 pr-2 transition hover:bg-slate-100"
+            (click)="toggleUserMenu($event)"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="userMenuOpen()"
+          >
+            <span class="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white">
+              {{ initials() }}
+            </span>
+            <span class="hidden max-w-36 text-left leading-tight md:block">
+              <span class="block truncate text-sm font-semibold text-slate-800">{{ user()?.name || 'Usuario' }}</span>
+              <span class="block truncate text-xs text-slate-400">{{ user()?.email }}</span>
+            </span>
+          </button>
+
+          @if (userMenuOpen()) {
+            <div class="absolute right-0 top-full z-30 mt-2 w-60 origin-top-right animate-scaleIn rounded-2xl border border-slate-200/80 bg-white p-2 shadow-lift" role="menu">
+              <div class="border-b border-slate-100 px-3 py-2.5">
+                <p class="truncate text-sm font-semibold text-slate-800">{{ user()?.name || 'Usuario' }}</p>
+                <p class="truncate text-xs text-slate-400">{{ user()?.email }}</p>
+              </div>
+              <a routerLink="/dashboard" class="mt-1 flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50" role="menuitem">
+                <ng-icon name="featherHome" class="text-base"></ng-icon> Ir al panel
+              </a>
+              <button class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50" (click)="logout()" role="menuitem">
+                <ng-icon name="featherLogOut" class="text-base"></ng-icon> Cerrar sesión
+              </button>
+            </div>
+          }
         </div>
       </div>
     </header>
 
-    <!-- Page Content -->
-    <main class="flex-1 p-3 sm:p-4 md:p-6 lg:p-8">
+    <main class="mx-auto w-full max-w-[1440px] flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <router-outlet></router-outlet>
     </main>
+
+    <footer class="mx-auto w-full max-w-[1440px] px-4 pb-6 sm:px-6 lg:px-8">
+      <p class="border-t border-slate-200/70 pt-4 text-center text-xs text-slate-400">
+        PrestaFlow · Panel → Mi cartera → Red de cobro → Liquidación
+      </p>
+    </footer>
   </div>
 </div>

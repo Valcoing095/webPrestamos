@@ -23,29 +23,54 @@ import { Payment } from '../../core/models';
         </button>
       </div>
 
-      <!-- Filter -->
+      <!-- Filtros: cliente, texto y fecha -->
       <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body py-2">
+        <div class="card-body py-3">
           <div class="row g-2 align-items-center">
-            <div class="col-12 col-sm-8 col-md-5">
-              <input 
-                type="text" 
-                class="form-control form-control-sm" 
+            <div class="col-12 col-sm-6 col-md-3">
+              <select
+                class="form-select form-select-sm"
+                [ngModel]="filterPersonId()"
+                (ngModelChange)="filterPersonId.set($event)"
+                aria-label="Filtrar por cliente"
+              >
+                <option value="all">Todos los clientes</option>
+                @for (person of clientsForFilter(); track person.id) {
+                  <option [value]="person.id">{{ person.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="col-12 col-sm-6 col-md-4">
+              <input
+                type="text"
+                class="form-control form-control-sm"
                 placeholder="Buscar por cliente..."
-                [(ngModel)]="searchTerm"
+                [ngModel]="searchTerm()"
+                (ngModelChange)="searchTerm.set($event)"
               >
             </div>
-            <div class="col-8 col-sm-4 col-md-3">
-              <input 
-                type="date" 
-                class="form-control form-control-sm" 
-                [(ngModel)]="filterDate"
+            <div class="col-8 col-sm-6 col-md-3">
+              <input
+                type="date"
+                class="form-control form-control-sm"
+                [ngModel]="filterDate()"
+                (ngModelChange)="filterDate.set($event)"
+                aria-label="Filtrar por fecha"
               >
             </div>
-            <div class="col-4 col-sm-4 col-md-2" *ngIf="filterDate">
-              <button class="btn btn-sm btn-outline-secondary w-100" (click)="filterDate = ''">Limpiar</button>
-            </div>
+            @if (hasActiveFilters()) {
+              <div class="col-4 col-sm-6 col-md-2">
+                <button class="btn btn-sm btn-outline-secondary w-100" (click)="clearFilters()">Limpiar</button>
+              </div>
+            }
           </div>
+          <p class="mb-0 mt-2 small text-muted">
+            {{ filteredPayments().length }} pago(s)
+            @if (filterPersonId() !== 'all') {
+              de <span class="fw-semibold text-primary">{{ selectedClientName() }}</span>
+            }
+            · Total: <span class="fw-semibold text-success">{{ formatCurrency(filteredTotal()) }}</span>
+          </p>
         </div>
       </div>
 
@@ -185,8 +210,11 @@ export class MisPagosComponent {
   showModal = signal(false);
   showDeleteConfirm = signal(false);
   paymentToDelete = signal<Payment | null>(null);
-  searchTerm = '';
-  filterDate = '';
+
+  // Filtros (signals para que la tabla se actualice al instante)
+  searchTerm = signal('');
+  filterDate = signal('');
+  filterPersonId = signal('all');
 
   form = {
     loanId: '',
@@ -210,23 +238,65 @@ export class MisPagosComponent {
     return this.paymentService.getAll().filter(p => loanIds.has(p.loanId));
   });
 
+  /** Clientes con préstamos propios (opciones del filtro) */
+  clientsForFilter = computed(() => {
+    const userId = this.authService.getUserId();
+    if (!userId) return [];
+    const ownLoans = this.loanService.getOwnLoans(userId);
+    const ids = new Set(ownLoans.map(l => l.personId));
+    return this.personService.getByUserId(userId)
+      .filter(p => ids.has(p.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  selectedClientName = computed(() => {
+    const id = this.filterPersonId();
+    if (id === 'all') return '';
+    return this.clientsForFilter().find(p => p.id === id)?.name ?? '';
+  });
+
+  hasActiveFilters = computed(() =>
+    this.searchTerm().trim() !== '' || this.filterDate() !== '' || this.filterPersonId() !== 'all',
+  );
+
   filteredPayments = computed(() => {
     let result = this.payments();
-    
-    if (this.searchTerm) {
-      const term = this.searchTerm.toLowerCase();
+
+    const personId = this.filterPersonId();
+    if (personId !== 'all') {
+      const loanIds = new Set(
+        this.loanService.getOwnLoans(this.authService.getUserId() || '')
+          .filter(l => l.personId === personId)
+          .map(l => l.id),
+      );
+      result = result.filter(payment => loanIds.has(payment.loanId));
+    }
+
+    const term = this.searchTerm().trim().toLowerCase();
+    if (term) {
       result = result.filter(payment => {
         const personName = this.getPersonName(payment.loanId);
         return personName.toLowerCase().includes(term);
       });
     }
 
-    if (this.filterDate) {
-      result = result.filter(payment => payment.date === this.filterDate);
+    const date = this.filterDate();
+    if (date) {
+      result = result.filter(payment => payment.date === date);
     }
 
-    return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return [...result].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   });
+
+  filteredTotal = computed(() =>
+    this.filteredPayments().reduce((sum, p) => sum + p.amount, 0),
+  );
+
+  clearFilters(): void {
+    this.searchTerm.set('');
+    this.filterDate.set('');
+    this.filterPersonId.set('all');
+  }
 
   getPersonName(loanId: string): string {
     const loan = this.loanService.getById(loanId);

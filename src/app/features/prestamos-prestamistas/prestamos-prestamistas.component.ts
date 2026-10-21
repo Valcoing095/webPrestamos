@@ -64,7 +64,7 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
             <div class="card border-0 shadow-sm bg-primary text-white h-100">
               <div class="card-body p-3">
                 <h6 class="mb-1 small opacity-75">Total Prestado</h6>
-                <h5 class="mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalLoaned) }}</h5>
+                <h5 class="amount mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalLoaned) }}</h5>
               </div>
             </div>
           </div>
@@ -72,7 +72,7 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
             <div class="card border-0 shadow-sm bg-success text-white h-100">
               <div class="card-body p-3">
                 <h6 class="mb-1 small opacity-75">Cobrado</h6>
-                <h5 class="mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalCollected) }}</h5>
+                <h5 class="amount mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalCollected) }}</h5>
               </div>
             </div>
           </div>
@@ -80,7 +80,7 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
             <div class="card border-0 shadow-sm bg-warning text-dark h-100">
               <div class="card-body p-3">
                 <h6 class="mb-1 small opacity-75">Pendiente</h6>
-                <h5 class="mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalPending) }}</h5>
+                <h5 class="amount mb-0 h5 h4-md">{{ formatCurrency(lenderStats().totalPending) }}</h5>
               </div>
             </div>
           </div>

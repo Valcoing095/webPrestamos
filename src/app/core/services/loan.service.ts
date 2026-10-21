@@ -276,13 +276,21 @@ export class LoanCalculator {
   }
 
   static formatCurrency(amount: number): string {
+    // Sin decimales: montos más cortos que no desbordan las tarjetas
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   }
 
   static formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('es-MX');
+    if (!dateStr) return '';
+    // Parsear como fecha local: con `new Date('2026-10-15')` (UTC) en
+    // zonas UTC- la fecha se mostraba un día antes
+    const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+    const date = year && month && day ? new Date(year, month - 1, day) : new Date(dateStr);
+    return date.toLocaleDateString('es-MX');
   }
 }

@@ -1,28 +1,37 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withInMemoryScrolling, withViewTransitions } from '@angular/router';
 import { provideIcons } from '@ng-icons/core';
-import { 
-  featherHome, 
-  featherUsers, 
-  featherDollarSign, 
-  featherCreditCard, 
-  featherMenu, 
+import {
+  featherHome,
+  featherUsers,
+  featherDollarSign,
+  featherCreditCard,
+  featherMenu,
   featherUser,
   featherMap,
   featherTrendingUp,
   featherLogOut,
-  featherSettings,
-  featherFileText
+  featherFileText,
+  featherPlus,
+  featherActivity,
+  featherCheckCircle,
+  featherClock,
+  featherPieChart,
+  featherBell,
+  featherAlertTriangle,
 } from '@ng-icons/feather-icons';
-import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
-    provideCharts(withDefaultRegisterables()),
+    // Transiciones nativas entre rutas (View Transitions API): fluidas y sin librerías
+    provideRouter(
+      routes,
+      withViewTransitions(),
+      withInMemoryScrolling({ scrollPositionRestoration: 'top' }),
+    ),
     provideIcons({
       featherHome,
       featherUsers,
@@ -33,8 +42,14 @@ export const appConfig: ApplicationConfig = {
       featherMap,
       featherTrendingUp,
       featherLogOut,
-      featherSettings,
-      featherFileText
-    })
-  ]
+      featherFileText,
+      featherPlus,
+      featherActivity,
+      featherCheckCircle,
+      featherClock,
+      featherPieChart,
+      featherBell,
+      featherAlertTriangle,
+    }),
+  ],
 };

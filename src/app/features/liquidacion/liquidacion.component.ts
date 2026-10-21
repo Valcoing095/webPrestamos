@@ -58,7 +58,7 @@ interface LenderSettlement {
           <div class="card border-0 shadow-sm bg-primary text-white h-100">
             <div class="card-body p-3 p-md-4">
               <h6 class="mb-1 opacity-75 small">Total Prestado</h6>
-              <h5 class="mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalLoaned) }}</h5>
+              <h5 class="amount mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalLoaned) }}</h5>
             </div>
           </div>
         </div>
@@ -66,7 +66,7 @@ interface LenderSettlement {
           <div class="card border-0 shadow-sm bg-success text-white h-100">
             <div class="card-body p-3 p-md-4">
               <h6 class="mb-1 opacity-75 small">Total Cobrado</h6>
-              <h5 class="mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalCollected) }}</h5>
+              <h5 class="amount mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalCollected) }}</h5>
             </div>
           </div>
         </div>
@@ -74,7 +74,7 @@ interface LenderSettlement {
           <div class="card border-0 shadow-sm bg-warning text-dark h-100">
             <div class="card-body p-3 p-md-4">
               <h6 class="mb-1 opacity-75 small">Comisiones</h6>
-              <h5 class="mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalCommission) }}</h5>
+              <h5 class="amount mb-0 h5 h3-md">{{ formatCurrency(globalStats().totalCommission) }}</h5>
             </div>
           </div>
         </div>
@@ -82,7 +82,7 @@ interface LenderSettlement {
           <div class="card border-0 shadow-sm bg-info text-white h-100">
             <div class="card-body p-3 p-md-4">
               <h6 class="mb-1 opacity-75 small">Neto para Ti</h6>
-              <h5 class="mb-0 h5 h3-md">{{ formatCurrency(globalStats().netForOwner) }}</h5>
+              <h5 class="amount mb-0 h5 h3-md">{{ formatCurrency(globalStats().netForOwner) }}</h5>
             </div>
           </div>
         </div>

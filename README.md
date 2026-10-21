@@ -1,60 +1,46 @@
-# PrestamosAngular
+# PrestaFlow · Gestor de Préstamos
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.3.
+Aplicación web (Angular 21 + Tailwind CSS) para gestionar préstamos personales y de una red de prestamistas por rutas. Los datos se guardan localmente en el navegador (`localStorage`), sin backend.
 
-## Development server
-
-To start a local development server, run:
+## Cómo ejecutar
 
 ```bash
-ng serve
+npm install
+npm start        # http://localhost:4200
+npm run build    # producción en dist/
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Flujo de la app
 
-## Code scaffolding
+La navegación está organizada siguiendo el trabajo diario:
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+1. **Acceso** — `/login` y `/register` (cuenta local por dispositivo).
+2. **Panel** — `/dashboard`: saludo, indicadores (capital, recuperado, pendiente, activos), accesos rápidos y alerta de vencidos.
+3. **Mi cartera** — `/clientes` → `/mis-prestamos` → `/mis-pagos`: registra clientes, presta tu propio dinero y anota los cobros.
+4. **Red de cobro** — `/prestamistas` → `/rutas` → `/prestamos-prestamistas` → `/liquidacion`: prestamistas que cobran por ti, sus rutas y el cierre de cuentas.
+5. **Análisis** — `/seguimiento`: métricas, gráficos y notas por préstamo.
 
-```bash
-ng generate component component-name
+## Estructura del código
+
+```
+src/app/
+  core/          # Única fuente de verdad: modelos, servicios (signals + localStorage) y guards
+  features/      # Pantallas por dominio (carga diferida por ruta)
+    auth/        # login y register
+    dashboard/   # panel principal
+    ...
+  layouts/       # Layout principal: sidebar por secciones, encabezado dinámico, usuario y salida
+  shared/        # Componentes reutilizables (modal, confirmación, tabla, buscador, tarjetas)
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Rendimiento
 
-```bash
-ng generate --help
-```
+- Carga diferida por ruta; Chart.js solo se descarga al entrar a Seguimiento.
+- Sin frameworks CSS/JS pesados: el diseño es Tailwind + una capa ligera de compatibilidad en `src/styles.css`.
+- Animaciones solo con `transform`/`opacity` (GPU) y soporte de `prefers-reduced-motion`.
+- Transiciones entre rutas con la View Transitions API nativa del navegador.
 
-## Building
+## Notas técnicas
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-# webPrestamos
+- Los servicios de datos (`core/services/data.service.ts`) actualizan el estado de forma inmutable para que la interfaz se refresque al instante al crear, editar o eliminar.
+- Las rutas aceptan alias heredados: `/personas` → `/clientes`, `/prestamos` → `/mis-prestamos`, `/pagos` → `/mis-pagos`.

@@ -1,244 +1,265 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { LoanService, PaymentService, LenderService, PersonService } from '../../core/services';
+import { MoraService } from '../../core/services/mora.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Loan, Payment, Lender, Person } from '../../core/models';
+
+interface QuickAction {
+  path: string;
+  title: string;
+  description: string;
+  icon: string;
+  chip: string;
+}
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   template: `
-    <div class="space-y-6 animate-fadeIn">
-      <!-- Header -->
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div class="space-y-6">
+      <!-- Saludo -->
+      <section class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between animate-fadeIn">
         <div>
-          <h1 class="text-2xl font-semibold text-slate-800">Dashboard</h1>
-          <p class="text-sm text-slate-500 mt-1">Resumen de tu cartera de prestamos</p>
+          <p class="text-sm font-medium text-brand-600">{{ getCurrentDate() }}</p>
+          <h2 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            {{ greeting() }}{{ userName() ? ', ' + userName() : '' }}
+          </h2>
+          <p class="mt-1 text-sm text-slate-500">Así va tu cartera hoy. Esto es lo que puedes hacer ahora:</p>
         </div>
-        <div class="text-sm text-slate-400">
-          {{ getCurrentDate() }}
-        </div>
-      </div>
+        <a routerLink="/mis-pagos" class="btn btn-primary shrink-0">
+          Registrar un pago
+          <span aria-hidden="true">→</span>
+        </a>
+      </section>
 
-      <!-- KPIs Principales -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <div class="bg-white rounded-xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex items-center gap-3 mb-2 md:mb-3">
-            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <span class="text-xs md:text-sm font-medium text-slate-500">Capital Total</span>
+      <!-- KPIs -->
+      <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-4 stagger" aria-label="Indicadores principales">
+        <article class="card card-hover p-5">
+          <div class="flex items-start justify-between">
+            <span class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-glow">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <span class="badge badge-primary">Total</span>
           </div>
-          <p class="text-xl md:text-2xl font-bold text-slate-800">{{ formatCurrency(totalLoaned()) }}</p>
-          <p class="text-xs text-slate-400 mt-1">Desembolsado total</p>
-        </div>
+          <p class="amount mt-4 text-2xl font-bold text-slate-900">{{ formatCurrency(totalLoaned()) }}</p>
+          <p class="mt-0.5 text-sm text-slate-500">Capital desembolsado</p>
+        </article>
 
-        <div class="bg-white rounded-xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex items-center gap-3 mb-2 md:mb-3">
-            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <span class="text-xs md:text-sm font-medium text-slate-500">Recuperado</span>
+        <article class="card card-hover p-5">
+          <div class="flex items-start justify-between">
+            <span class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <span class="badge badge-success">{{ collectPercentage() }}%</span>
           </div>
-          <p class="text-xl md:text-2xl font-bold text-slate-800">{{ formatCurrency(totalCollected()) }}</p>
-          <p class="text-xs text-emerald-500 mt-1">{{ collectPercentage() }}% del total</p>
-        </div>
+          <p class="amount mt-4 text-2xl font-bold text-slate-900">{{ formatCurrency(totalCollected()) }}</p>
+          <p class="mt-0.5 text-sm text-slate-500">Recuperado</p>
+          <div class="progress mt-3"><div class="progress-bar" [style.width.%]="collectPercentage()"></div></div>
+        </article>
 
-        <div class="bg-white rounded-xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex items-center gap-3 mb-2 md:mb-3">
-            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <span class="text-xs md:text-sm font-medium text-slate-500">Pendiente</span>
+        <article class="card card-hover p-5">
+          <div class="flex items-start justify-between">
+            <span class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-white">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>
+            <span class="badge badge-warning">Por cobrar</span>
           </div>
-          <p class="text-xl md:text-2xl font-bold text-slate-800">{{ formatCurrency(pendingCapital()) }}</p>
-          <p class="text-xs text-slate-400 mt-1">Por cobrar</p>
-        </div>
+          <p class="amount mt-4 text-2xl font-bold text-slate-900">{{ formatCurrency(pendingCapital()) }}</p>
+          <p class="mt-0.5 text-sm text-slate-500">Pendiente de cobro</p>
+        </article>
 
-        <div class="bg-white rounded-xl p-4 md:p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex items-center gap-3 mb-2 md:mb-3">
-            <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-              </svg>
-            </div>
-            <span class="text-xs md:text-sm font-medium text-slate-500">Prestamos Activos</span>
+        <article class="card card-hover p-5">
+          <div class="flex items-start justify-between">
+            <span class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-violet-400 to-violet-600 text-white">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </span>
+            <span class="badge" style="background:#f5f3ff;color:#6d28d9">{{ totalLoansCount() }} en total</span>
           </div>
-          <p class="text-xl md:text-2xl font-bold text-slate-800">{{ activeLoansCount() }}</p>
-          <p class="text-xs text-slate-400 mt-1">En proceso</p>
-        </div>
-      </div>
+          <p class="mt-4 text-2xl font-bold text-slate-900">{{ activeLoansCount() }}</p>
+          <p class="mt-0.5 text-sm text-slate-500">Préstamos activos</p>
+        </article>
+      </section>
 
-      <!-- Secciones Resumen -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Gestion Propia -->
-        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h3 class="text-base font-semibold text-slate-800">Gestion Propia</h3>
+      <!-- Alertas de mora -->
+      @if (overdueAlerts().length > 0) {
+        <section class="animate-fadeIn overflow-hidden rounded-2xl border border-red-100 bg-gradient-to-r from-red-50/90 via-white to-white shadow-sm" aria-label="Alertas de mora">
+          <div class="flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-red-500 text-white shadow-sm">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.94 4h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+            </span>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-base font-bold text-slate-900">
+                {{ overdueAlerts().length }} deuda{{ overdueAlerts().length === 1 ? '' : 's' }} en mora
+                <span class="font-semibold text-red-600">· {{ formatCurrency(moraAmount()) }} en riesgo</span>
+              </h3>
+              <p class="truncate text-sm text-slate-500">
+                @for (alert of overdueAlerts().slice(0, 3); track alert.loan.id; let last = $last) {
+                  {{ alert.personName }} ({{ alert.daysOverdue }}d){{ last ? '' : ' · ' }}
+                }
+                @if (overdueAlerts().length > 3) { · y {{ overdueAlerts().length - 3 }} más }
+              </p>
+            </div>
+            <a routerLink="/alertas" class="btn btn-danger shrink-0">Ver alertas</a>
+          </div>
+        </section>
+      }
+
+      <!-- Accesos rápidos: el flujo en un clic -->
+      <section aria-label="Accesos rápidos">
+        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Flujo rápido</h3>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 stagger">
+          @for (action of quickActions; track action.path) {
+            <a [routerLink]="action.path" class="card card-hover group flex items-center gap-3.5 p-4">
+              <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg" [class]="action.chip">
+                <span aria-hidden="true">{{ action.icon }}</span>
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-semibold text-slate-800">{{ action.title }}</span>
+                <span class="block truncate text-xs text-slate-400">{{ action.description }}</span>
+              </span>
+              <span class="text-slate-300 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-brand-500" aria-hidden="true">→</span>
+            </a>
+          }
+        </div>
+      </section>
+
+      <!-- Gestión propia vs prestamistas -->
+      <section class="grid grid-cols-1 gap-4 lg:grid-cols-2 md:gap-6 stagger" aria-label="Resumen por tipo de gestión">
+        <article class="card overflow-hidden">
+          <div class="card-header flex items-center justify-between">
+            <h3 class="text-base font-semibold text-slate-800">Mi cartera propia</h3>
+            <a routerLink="/mis-prestamos" class="text-sm font-medium text-brand-600 hover:text-brand-700">Ver préstamos →</a>
           </div>
           <div class="p-6">
-            <div class="grid grid-cols-2 gap-4 mb-6">
-              <div class="bg-slate-50 rounded-lg p-4 text-center">
-                <p class="text-2xl font-bold text-blue-600">{{ ownLoansCount() }}</p>
-                <p class="text-xs text-slate-500 mt-1">Prestamos</p>
+            <div class="mb-6 grid grid-cols-2 gap-4">
+              <div class="rounded-xl bg-slate-50 p-4 text-center">
+                <p class="text-2xl font-bold text-brand-600">{{ ownLoansCount() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Préstamos</p>
               </div>
-              <div class="bg-slate-50 rounded-lg p-4 text-center">
-                <p class="text-2xl font-bold text-emerald-600">{{ formatCurrency(ownCapital()) }}</p>
-                <p class="text-xs text-slate-500 mt-1">Capital</p>
+              <div class="rounded-xl bg-slate-50 p-4 text-center">
+                <p class="truncate text-2xl font-bold text-emerald-600">{{ formatCurrency(ownCapital()) }}</p>
+                <p class="mt-1 text-xs text-slate-500">Capital</p>
               </div>
             </div>
-            
             <div class="space-y-2">
               <div class="flex justify-between text-sm">
-                <span class="text-slate-500">Progreso de recuperacion</span>
-                <span class="font-medium text-slate-700">{{ ownCollectPercentage() }}%</span>
+                <span class="text-slate-500">Recuperación</span>
+                <span class="font-semibold text-slate-700">{{ ownCollectPercentage() }}%</span>
               </div>
-              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  class="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                  [style.width.%]="ownCollectPercentage()"
-                ></div>
-              </div>
+              <div class="progress"><div class="progress-bar" [style.width.%]="ownCollectPercentage()"></div></div>
               <p class="text-xs text-slate-400">{{ formatCurrency(ownCollected()) }} de {{ formatCurrency(ownCapital()) }}</p>
             </div>
           </div>
-        </div>
+        </article>
 
-        <!-- Prestamistas -->
-        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h3 class="text-base font-semibold text-slate-800">Gestion de Prestamistas</h3>
+        <article class="card overflow-hidden">
+          <div class="card-header flex items-center justify-between">
+            <h3 class="text-base font-semibold text-slate-800">Red de prestamistas</h3>
+            <a routerLink="/liquidacion" class="text-sm font-medium text-brand-600 hover:text-brand-700">Liquidar →</a>
           </div>
           <div class="p-6">
-            <div class="grid grid-cols-2 gap-4 mb-6">
-              <div class="bg-slate-50 rounded-lg p-4 text-center">
-                <p class="text-2xl font-bold text-blue-600">{{ lenderLoansCount() }}</p>
-                <p class="text-xs text-slate-500 mt-1">Prestamos</p>
+            <div class="mb-6 grid grid-cols-2 gap-4">
+              <div class="rounded-xl bg-slate-50 p-4 text-center">
+                <p class="text-2xl font-bold text-brand-600">{{ lenderLoansCount() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Préstamos</p>
               </div>
-              <div class="bg-slate-50 rounded-lg p-4 text-center">
+              <div class="rounded-xl bg-slate-50 p-4 text-center">
                 <p class="text-2xl font-bold text-amber-600">{{ lendersCount() }}</p>
-                <p class="text-xs text-slate-500 mt-1">Prestamistas</p>
+                <p class="mt-1 text-xs text-slate-500">Prestamistas</p>
               </div>
             </div>
-            
             <div class="space-y-2">
               <div class="flex justify-between text-sm">
-                <span class="text-slate-500">Progreso de recuperacion</span>
-                <span class="font-medium text-slate-700">{{ lenderCollectPercentage() }}%</span>
+                <span class="text-slate-500">Recuperación</span>
+                <span class="font-semibold text-slate-700">{{ lenderCollectPercentage() }}%</span>
               </div>
-              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  class="h-full bg-blue-500 rounded-full transition-all duration-500"
-                  [style.width.%]="lenderCollectPercentage()"
-                ></div>
-              </div>
+              <div class="progress"><div class="progress-bar" [style.width.%]="lenderCollectPercentage()"></div></div>
               <p class="text-xs text-slate-400">{{ formatCurrency(lenderCollected()) }} de {{ formatCurrency(lenderCapital()) }}</p>
             </div>
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
 
-      <!-- Tabla y Estado -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Ultimos Pagos -->
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h3 class="text-base font-semibold text-slate-800">Ultimos Pagos</h3>
+      <!-- Últimos pagos + estado -->
+      <section class="grid grid-cols-1 gap-4 lg:grid-cols-3 md:gap-6 stagger">
+        <article class="card overflow-hidden lg:col-span-2">
+          <div class="card-header flex items-center justify-between">
+            <h3 class="text-base font-semibold text-slate-800">Últimos pagos</h3>
+            <a routerLink="/mis-pagos" class="text-sm font-medium text-brand-600 hover:text-brand-700">Ver todos →</a>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="bg-slate-50/80">
+            <table class="table">
+              <thead>
                 <tr>
-                  <th class="px-4 md:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
-                  <th class="px-4 md:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Prestamo</th>
-                  <th class="px-4 md:px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Monto</th>
-                  <th class="px-4 md:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Fecha</th>
+                  <th>Cliente</th>
+                  <th class="hidden sm:table-cell">Préstamo</th>
+                  <th class="text-right">Monto</th>
+                  <th class="hidden sm:table-cell">Fecha</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-50">
-                <tr *ngFor="let payment of recentPayments()" class="hover:bg-slate-50/50 transition-colors">
-                  <td class="px-4 md:px-6 py-4 text-sm font-medium text-slate-800">{{ getPersonNameForLoan(payment.loanId) }}</td>
-                  <td class="px-4 md:px-6 py-4 hidden sm:table-cell">
-                    <span class="inline-flex px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded">
-                      {{ getLoanId(payment.loanId) }}
-                    </span>
-                  </td>
-                  <td class="px-4 md:px-6 py-4 text-sm text-right font-medium text-slate-800">{{ formatCurrency(payment.amount) }}</td>
-                  <td class="px-4 md:px-6 py-4 text-sm text-slate-500 hidden sm:table-cell">{{ formatDate(payment.date) }}</td>
-                </tr>
-                <tr *ngIf="recentPayments().length === 0">
-                  <td colspan="4" class="px-6 py-8 text-center text-sm text-slate-400">No hay pagos registrados</td>
-                </tr>
+              <tbody>
+                @for (payment of recentPayments(); track payment.id) {
+                  <tr>
+                    <td class="font-medium text-slate-800">{{ getPersonNameForLoan(payment.loanId) }}</td>
+                    <td class="hidden sm:table-cell"><span class="badge badge-secondary">{{ getLoanId(payment.loanId) }}</span></td>
+                    <td class="text-right font-semibold text-emerald-600">{{ formatCurrency(payment.amount) }}</td>
+                    <td class="hidden text-slate-500 sm:table-cell">{{ formatDate(payment.date) }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="px-6 py-10 text-center">
+                      <p class="text-sm font-medium text-slate-500">Aún no hay pagos registrados</p>
+                      <p class="mt-1 text-xs text-slate-400">Cuando registres el primer pago aparecerá aquí.</p>
+                      <a routerLink="/mis-pagos" class="btn btn-primary btn-sm mt-4">Registrar pago</a>
+                    </td>
+                  </tr>
+                }
               </tbody>
             </table>
           </div>
-        </div>
+        </article>
 
-        <!-- Estado de Prestamos -->
-        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-slate-100">
-            <h3 class="text-base font-semibold text-slate-800">Estado</h3>
-          </div>
-          <div class="p-6 space-y-5">
+        <article class="card overflow-hidden">
+          <div class="card-header"><h3 class="text-base font-semibold text-slate-800">Estado de préstamos</h3></div>
+          <div class="space-y-5 p-6">
             <div>
-              <div class="flex justify-between items-center mb-2">
+              <div class="mb-2 flex items-center justify-between">
                 <span class="text-sm text-slate-600">Activos</span>
-                <span class="text-sm font-semibold text-blue-600">{{ activeLoansCount() }}</span>
+                <span class="text-sm font-bold text-brand-600">{{ activeLoansCount() }}</span>
               </div>
-              <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  class="h-full bg-blue-500 rounded-full transition-all duration-300"
-                  [style.width.%]="totalLoansCount() > 0 ? (activeLoansCount() / totalLoansCount() * 100) : 0"
-                ></div>
-              </div>
+              <div class="progress"><div class="progress-bar" [style.width.%]="totalLoansCount() > 0 ? (activeLoansCount() / totalLoansCount() * 100) : 0"></div></div>
             </div>
-
             <div>
-              <div class="flex justify-between items-center mb-2">
+              <div class="mb-2 flex items-center justify-between">
                 <span class="text-sm text-slate-600">Completados</span>
-                <span class="text-sm font-semibold text-emerald-600">{{ completedLoansCount() }}</span>
+                <span class="text-sm font-bold text-emerald-600">{{ completedLoansCount() }}</span>
               </div>
-              <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  class="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                  [style.width.%]="totalLoansCount() > 0 ? (completedLoansCount() / totalLoansCount() * 100) : 0"
-                ></div>
-              </div>
+              <div class="progress"><div class="h-full rounded-full bg-emerald-500 progress-grow" [style.width.%]="totalLoansCount() > 0 ? (completedLoansCount() / totalLoansCount() * 100) : 0"></div></div>
             </div>
-
             <div>
-              <div class="flex justify-between items-center mb-2">
+              <div class="mb-2 flex items-center justify-between">
                 <span class="text-sm text-slate-600">Vencidos</span>
-                <span class="text-sm font-semibold text-red-600">{{ overdueLoansCount() }}</span>
+                <span class="text-sm font-bold text-red-600">{{ overdueLoansCount() }}</span>
               </div>
-              <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  class="h-full bg-red-500 rounded-full transition-all duration-300"
-                  [style.width.%]="totalLoansCount() > 0 ? (overdueLoansCount() / totalLoansCount() * 100) : 0"
-                ></div>
-              </div>
+              <div class="progress"><div class="h-full rounded-full bg-red-500 progress-grow" [style.width.%]="totalLoansCount() > 0 ? (overdueLoansCount() / totalLoansCount() * 100) : 0"></div></div>
             </div>
-
-            <div class="pt-4 border-t border-slate-100">
-              <p class="text-sm text-slate-500">Total: <span class="font-semibold text-slate-700">{{ totalLoansCount() }} prestamos</span></p>
-            </div>
+            <p class="border-t border-slate-100 pt-4 text-sm text-slate-500">
+              Total: <span class="font-semibold text-slate-700">{{ totalLoansCount() }} préstamos</span>
+            </p>
+            @if (overdueLoansCount() > 0) {
+              <a routerLink="/alertas" class="flex items-center gap-2 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-100">
+                <span aria-hidden="true">⚠</span> Tienes {{ overdueLoansCount() }} préstamo(s) en mora. Ver alertas →
+              </a>
+            }
           </div>
-        </div>
-      </div>
+        </article>
+      </section>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-  `]
+  styles: [`:host { display: block; }`],
 })
 export class DashboardComponent implements OnInit {
   private loanService = inject(LoanService);
@@ -246,6 +267,7 @@ export class DashboardComponent implements OnInit {
   private lenderService = inject(LenderService);
   private personService = inject(PersonService);
   private authService = inject(AuthService);
+  private moraService = inject(MoraService);
 
   loans = signal<Loan[]>([]);
   payments = signal<Payment[]>([]);
@@ -253,36 +275,45 @@ export class DashboardComponent implements OnInit {
   persons = signal<Person[]>([]);
   userId: string = '';
 
-  // Métrics para Gestión Propia
+  userName = computed(() => this.authService.currentUser()?.name?.split(' ')[0] ?? '');
+  greeting = computed(() => {
+    const h = new Date().getHours();
+    return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+  });
+
+  quickActions: QuickAction[] = [
+    { path: '/mis-prestamos', title: 'Nuevo préstamo', description: 'Presta de tu cartera propia', icon: '＋', chip: 'bg-brand-50 text-brand-600' },
+    { path: '/mis-pagos', title: 'Registrar pago', description: 'Abona a un préstamo activo', icon: '✓', chip: 'bg-emerald-50 text-emerald-600' },
+    { path: '/clientes', title: 'Nuevo cliente', description: 'Añade una persona', icon: '＠', chip: 'bg-amber-50 text-amber-600' },
+    { path: '/liquidacion', title: 'Liquidar ruta', description: 'Cierra cuentas con prestamistas', icon: '▤', chip: 'bg-violet-50 text-violet-600' },
+  ];
+
+  // Gestión propia
   ownLoans = computed(() => this.loans().filter(l => l.loanType === 'own' || !l.lenderId));
   ownLoansCount = computed(() => this.ownLoans().length);
   ownCapital = computed(() => this.ownLoans().reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0));
-  ownCollected = computed(() => {
-    return this.ownLoans().reduce((sum, l) => {
-      return sum + this.paymentService.getTotalPaidForLoan(l.id);
-    }, 0);
-  });
+  ownCollected = computed(() =>
+    this.ownLoans().reduce((sum, l) => sum + this.paymentService.getTotalPaidForLoan(l.id), 0),
+  );
   ownCollectPercentage = computed(() => {
     const total = this.ownCapital();
     return total > 0 ? Math.round((this.ownCollected() / total) * 100) : 0;
   });
 
-  // Métricas para Prestamistas
+  // Prestamistas
   lenderLoans = computed(() => this.loans().filter(l => l.loanType === 'lender' && l.lenderId));
   lenderLoansCount = computed(() => this.lenderLoans().length);
   lendersCount = computed(() => this.lenders().filter(l => l.isActive).length);
   lenderCapital = computed(() => this.lenderLoans().reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0));
-  lenderCollected = computed(() => {
-    return this.lenderLoans().reduce((sum, l) => {
-      return sum + this.paymentService.getTotalPaidForLoan(l.id);
-    }, 0);
-  });
+  lenderCollected = computed(() =>
+    this.lenderLoans().reduce((sum, l) => sum + this.paymentService.getTotalPaidForLoan(l.id), 0),
+  );
   lenderCollectPercentage = computed(() => {
     const total = this.lenderCapital();
     return total > 0 ? Math.round((this.lenderCollected() / total) * 100) : 0;
   });
 
-  // Métricas Generales
+  // Generales
   totalLoaned = computed(() => this.ownCapital() + this.lenderCapital());
   totalCollected = computed(() => this.ownCollected() + this.lenderCollected());
   pendingCapital = computed(() => this.totalLoaned() - this.totalCollected());
@@ -291,23 +322,24 @@ export class DashboardComponent implements OnInit {
     return total > 0 ? Math.round((this.totalCollected() / total) * 100) : 0;
   });
 
-  // Estado de Préstamos
-  activeLoansCount = computed(() => {
-    return this.loans().filter(l => l.status === 'active').length;
-  });
-  completedLoansCount = computed(() => {
-    return this.loans().filter(l => l.status === 'completed').length;
-  });
-  overdueLoansCount = computed(() => {
-    return this.loans().filter(l => l.status === 'overdue').length;
-  });
+  activeLoansCount = computed(() => this.loans().filter(l => l.status === 'active').length);
+  completedLoansCount = computed(() => this.loans().filter(l => l.status === 'completed').length);
   totalLoansCount = computed(() => this.loans().length);
 
-  recentPayments = computed(() => {
-    return this.payments()
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
+  // Mora calculada por fechas (el estado guardado nunca se actualizaba solo)
+  moraAlerts = computed(() => {
+    this.loans(); // dependencia: recalcular cuando cargan los datos
+    return this.moraService.getAlerts(this.authService.getUserId() || '');
   });
+  overdueAlerts = computed(() => this.moraAlerts().filter(a => !a.isDueToday));
+  overdueLoansCount = computed(() => this.overdueAlerts().length);
+  moraAmount = computed(() => this.overdueAlerts().reduce((sum, a) => sum + a.pendingAmount, 0));
+
+  recentPayments = computed(() =>
+    [...this.payments()]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5),
+  );
 
   ngOnInit() {
     this.userId = this.authService.getUserId() || '';
@@ -322,14 +354,12 @@ export class DashboardComponent implements OnInit {
   }
 
   getPersonName(personId: string): string {
-    const person = this.persons().find(p => p.id === personId);
-    return person ? person.name : 'Desconocido';
+    return this.persons().find(p => p.id === personId)?.name ?? 'Desconocido';
   }
 
   getPersonNameForLoan(loanId: string): string {
     const loan = this.loans().find(l => l.id === loanId);
-    if (!loan) return 'Desconocido';
-    return this.getPersonName(loan.personId);
+    return loan ? this.getPersonName(loan.personId) : 'Desconocido';
   }
 
   getLoanId(loanId: string): string {
@@ -341,19 +371,20 @@ export class DashboardComponent implements OnInit {
       style: 'currency',
       currency: 'COP',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount);
   }
 
   formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('es-CO');
+    if (!date) return '';
+    // Fecha local (evita que se muestre un día antes por la zona horaria)
+    const [year, month, day] = date.split('T')[0].split('-').map(Number);
+    const d = year && month && day ? new Date(year, month - 1, day) : new Date(date);
+    return d.toLocaleDateString('es-CO');
   }
 
   getCurrentDate(): string {
-    return new Date().toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    const text = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 }

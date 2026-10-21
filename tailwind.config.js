@@ -1,44 +1,44 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    "./src/**/*.{html,ts}",
-  ],
+  content: ['./src/**/*.{html,ts}'],
   theme: {
     extend: {
       colors: {
-        cream: {
-          50: '#fdfcfb',
-          100: '#f9f6f3',
-          200: '#f3ece6',
-          300: '#e8ddd3',
-          400: '#d9c9b8',
-          500: '#c4ad96',
+        brand: {
+          50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+          400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+          800: '#3730a3', 900: '#312e81',
         },
-        slate: {
-          850: '#1a2332',
-          950: '#0d1117',
-        }
+        ink: { 850: '#1a2332', 950: '#0d1117' },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       boxShadow: {
-        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
-        'soft-lg': '0 10px 40px -10px rgba(0, 0, 0, 0.1)',
-        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
+        card: '0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.12)',
+        lift: '0 2px 4px rgba(15,23,42,.05), 0 16px 32px -12px rgba(79,70,229,.25)',
+        glow: '0 8px 20px -8px rgba(79,70,229,.55)',
       },
-      borderRadius: {
-        '2xl': '1rem',
-        '3xl': '1.5rem',
+      keyframes: {
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(14px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'scale-in': {
+          from: { opacity: '0', transform: 'scale(.96) translateY(8px)' },
+          to: { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        'float-y': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-14px)' },
+        },
       },
-      transitionDuration: {
-        '250': '250ms',
-        '350': '350ms',
+      animation: {
+        'fade-up': 'fade-up .38s cubic-bezier(.22,1,.36,1) both',
+        'scale-in': 'scale-in .22s cubic-bezier(.22,1,.36,1) both',
+        'float': 'float-y 7s ease-in-out infinite',
       },
-      backdropBlur: {
-        xs: '2px',
-      }
     },
   },
   plugins: [],
-}
+};

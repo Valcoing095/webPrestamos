@@ -6,3 +6,4 @@ export * from './loan.service';
 export * from './payment.service';
 export * from './lender.service';
 export * from './route.service';
+export * from './mora.service';

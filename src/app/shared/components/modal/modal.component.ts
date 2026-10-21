@@ -1,44 +1,45 @@
-import { Component, Input, Output, EventEmitter, TemplateRef, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-declare var bootstrap: any;
-
+/**
+ * Modal propio (sin dependencias externas).
+ * Uso:
+ *   <app-modal #m title="Nuevo"> ...contenido... </app-modal>
+ *   m.open() / m.close()
+ */
 @Component({
   selector: 'app-modal',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="modal fade" #modalElement tabindex="-1" [attr.aria-labelledby]="modalId + 'Label'" aria-hidden="true">
-      <div class="modal-dialog" [ngClass]="sizeClass">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" [id]="modalId + 'Label'">{{ title }}</h5>
-            <button type="button" class="btn-close" (click)="close()" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <ng-content></ng-content>
-          </div>
-          @if (showFooter) {
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="close()">{{ cancelText }}</button>
-              @if (showConfirm) {
-                <button type="button" class="btn" [ngClass]="confirmBtnClass" (click)="confirm()">{{ confirmText }}</button>
-              }
+    @if (isOpen()) {
+      <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" [attr.aria-label]="title">
+        <div class="modal-backdrop" (click)="close()"></div>
+        <div class="modal-dialog" [ngClass]="sizeClass">
+          <div class="modal-content relative">
+            <div class="modal-header">
+              <h3 class="modal-title">{{ title }}</h3>
+              <button type="button" class="btn-close" (click)="close()" aria-label="Cerrar"></button>
             </div>
-          }
+            <div class="modal-body">
+              <ng-content></ng-content>
+            </div>
+            @if (showFooter) {
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="close()">{{ cancelText }}</button>
+                @if (showConfirm) {
+                  <button type="button" class="btn" [ngClass]="confirmBtnClass" (click)="confirm()">{{ confirmText }}</button>
+                }
+              </div>
+            }
+          </div>
         </div>
       </div>
-    </div>
-  `,
-  styles: [`
-    :host {
-      display: contents;
     }
-  `]
+  `,
+  styles: [`:host { display: contents; }`],
 })
-export class ModalComponent implements AfterViewInit {
-  @ViewChild('modalElement') modalElement!: ElementRef;
-  
+export class ModalComponent {
   @Input() title: string = '';
   @Input() size: 'sm' | 'md' | 'lg' | 'xl' = 'md';
   @Input() showFooter: boolean = true;
@@ -46,40 +47,30 @@ export class ModalComponent implements AfterViewInit {
   @Input() confirmText: string = 'Guardar';
   @Input() cancelText: string = 'Cancelar';
   @Input() confirmType: 'primary' | 'success' | 'danger' | 'warning' = 'primary';
-  @Input() modalId: string = 'modal-' + Math.random().toString(36).substr(2, 9);
 
   @Output() onConfirm = new EventEmitter<void>();
   @Output() onClose = new EventEmitter<void>();
   @Output() onOpen = new EventEmitter<void>();
 
-  private modalInstance: any;
+  isOpen = signal(false);
 
   get sizeClass(): string {
-    return this.size !== 'md' ? `modal-${this.size}` : '';
+    return { sm: 'modal-sm', md: '', lg: 'modal-lg', xl: 'modal-lg' }[this.size];
   }
 
   get confirmBtnClass(): string {
     return `btn-${this.confirmType}`;
   }
 
-  ngAfterViewInit(): void {
-    if (typeof bootstrap !== 'undefined') {
-      this.modalInstance = new bootstrap.Modal(this.modalElement.nativeElement);
-    }
-  }
-
   open(): void {
-    if (this.modalInstance) {
-      this.modalInstance.show();
-      this.onOpen.emit();
-    }
+    this.isOpen.set(true);
+    this.onOpen.emit();
   }
 
   close(): void {
-    if (this.modalInstance) {
-      this.modalInstance.hide();
-      this.onClose.emit();
-    }
+    if (!this.isOpen()) return;
+    this.isOpen.set(false);
+    this.onClose.emit();
   }
 
   confirm(): void {

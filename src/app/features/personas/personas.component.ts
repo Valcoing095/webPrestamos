@@ -45,34 +45,34 @@ import { Person } from '../../core/models';
       </div>
 
       <!-- Clients Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         @for (person of filteredPersons(); track person.id) {
-          <div class="bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+          <div class="min-w-0 bg-white rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
             <div class="p-5">
-              <div class="flex items-start justify-between">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-10 h-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center">
                     <span class="text-sm font-semibold text-slate-600">{{ person.name.charAt(0).toUpperCase() }}</span>
                   </div>
-                  <div>
-                    <h3 class="text-sm font-semibold text-slate-800">{{ person.name }}</h3>
+                  <div class="min-w-0">
+                    <h3 class="truncate text-sm font-semibold text-slate-800" [title]="person.name">{{ person.name }}</h3>
                     @if (person.phone) {
-                      <p class="text-xs text-slate-500">{{ person.phone }}</p>
+                      <p class="truncate text-xs text-slate-500">{{ person.phone }}</p>
                     }
                   </div>
                 </div>
-                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full" 
+                <span class="inline-flex shrink-0 whitespace-nowrap self-start px-2 py-1 text-xs font-medium rounded-full"
                       [class]="getActiveLoansCount(person.id) > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'">
                   {{ getActiveLoansCount(person.id) }} activo(s)
                 </span>
               </div>
-              
+
               @if (person.address) {
-                <p class="text-xs text-slate-500 mt-3 flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <p class="text-xs text-slate-500 mt-3 flex items-center gap-1.5 min-w-0">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                   </svg>
-                  {{ person.address }}
+                  <span class="truncate" [title]="person.address">{{ person.address }}</span>
                 </p>
               }
               
@@ -82,10 +82,10 @@ import { Person } from '../../core/models';
                 </div>
               }
             </div>
-            <div class="flex items-center border-t border-slate-50">
-              <button class="flex-1 px-4 py-3 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors" (click)="viewLoans(person)">Ver Prestamos</button>
-              <button class="flex-1 px-4 py-3 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors border-l border-slate-50" (click)="editPerson(person)">Editar</button>
-              <button class="flex-1 px-4 py-3 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors border-l border-slate-50" (click)="confirmDelete(person)">Eliminar</button>
+            <div class="flex items-stretch divide-x divide-slate-100 border-t border-slate-100">
+              <button class="flex-1 min-w-0 whitespace-nowrap px-2 py-3 text-center text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors" (click)="viewLoans(person)">Ver préstamos</button>
+              <button class="flex-1 min-w-0 whitespace-nowrap px-2 py-3 text-center text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors" (click)="editPerson(person)">Editar</button>
+              <button class="flex-1 min-w-0 whitespace-nowrap px-2 py-3 text-center text-xs font-medium text-red-600 hover:bg-red-50 transition-colors" (click)="confirmDelete(person)">Eliminar</button>
             </div>
           </div>
         } @empty {

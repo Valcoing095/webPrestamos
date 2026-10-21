@@ -1,6 +1,5 @@
-import { Component, Input, Output, EventEmitter, TemplateRef, ContentChild } from '@angular/core';
+import { Component, Input, Output, EventEmitter, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 
 export interface TableColumn {
   key: string;
@@ -13,26 +12,24 @@ export interface TableColumn {
 @Component({
   selector: 'app-data-table',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   template: `
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-3">
-        <h5 class="card-title mb-0">{{ title }}</h5>
-        <div class="d-flex gap-2 align-items-center">
+    <div class="card overflow-hidden">
+      <div class="card-header flex items-center justify-between gap-3">
+        <h3 class="text-base font-semibold text-slate-800">{{ title }}</h3>
+        <div class="flex items-center gap-2">
           <ng-content select="[tableActions]"></ng-content>
         </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead class="table-light">
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
             <tr>
               @for (column of columns; track column.key) {
-                <th [style.width]="column.width || 'auto'" class="px-3 py-3">
-                  {{ column.label }}
-                </th>
+                <th [style.width]="column.width || 'auto'">{{ column.label }}</th>
               }
               @if (showActions) {
-                <th class="px-3 py-3 text-end" style="width: 120px;">Acciones</th>
+                <th class="text-right" style="width: 140px;">Acciones</th>
               }
             </tr>
           </thead>
@@ -40,7 +37,7 @@ export interface TableColumn {
             @for (item of data; track trackByFn ? trackByFn(item) : item) {
               <tr>
                 @for (column of columns; track column.key) {
-                  <td class="px-3 py-3 align-middle">
+                  <td>
                     @if (column.template) {
                       <ng-container *ngTemplateOutlet="column.template; context: { $implicit: item, column: column }"></ng-container>
                     } @else {
@@ -49,17 +46,13 @@ export interface TableColumn {
                   </td>
                 }
                 @if (showActions) {
-                  <td class="px-3 py-3 text-end">
-                    <div class="d-flex gap-1 justify-content-end">
+                  <td class="text-right">
+                    <div class="flex justify-end gap-1.5">
                       @if (showEdit) {
-                        <button class="btn btn-sm btn-outline-primary" (click)="onEdit.emit(item)">
-                          Editar
-                        </button>
+                        <button class="btn btn-sm btn-outline-primary" (click)="onEdit.emit(item)">Editar</button>
                       }
                       @if (showDelete) {
-                        <button class="btn btn-sm btn-outline-danger" (click)="onDelete.emit(item)">
-                          Eliminar
-                        </button>
+                        <button class="btn btn-sm btn-outline-danger" (click)="onDelete.emit(item)">Eliminar</button>
                       }
                     </div>
                   </td>
@@ -67,7 +60,7 @@ export interface TableColumn {
               </tr>
             } @empty {
               <tr>
-                <td [attr.colspan]="columns.length + (showActions ? 1 : 0)" class="text-center py-5 text-muted">
+                <td [attr.colspan]="columns.length + (showActions ? 1 : 0)" class="py-10 text-center text-sm text-slate-400">
                   {{ emptyMessage }}
                 </td>
               </tr>
@@ -77,21 +70,7 @@ export interface TableColumn {
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-    .table th {
-      font-weight: 600;
-      font-size: 0.875rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #6c757d;
-    }
-    .table td {
-      vertical-align: middle;
-    }
-  `]
+  styles: [`:host { display: block; }`],
 })
 export class DataTableComponent {
   @Input() title: string = '';

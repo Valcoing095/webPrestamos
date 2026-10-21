@@ -6,24 +6,25 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="card border-0 shadow-sm h-100" [ngClass]="'bg-' + variant + ' text-white'">
-      <div class="card-body">
-        <h6 class="card-subtitle mb-2 opacity-75">{{ title }}</h6>
-        <h3 class="card-title mb-2">{{ value }}</h3>
-        <small class="opacity-75">{{ subtitle }}</small>
-        <div *ngIf="progress !== undefined" class="mt-3">
-          <div class="progress" style="height: 8px;">
-            <div 
-              class="progress-bar" 
-              [style.width.%]="progress"
-              [ngClass]="'bg-' + progressVariant"
-            ></div>
-          </div>
+    <article class="card card-hover h-full p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-slate-500">{{ title }}</p>
+          <p class="mt-1.5 truncate text-2xl font-bold text-slate-900">{{ value }}</p>
+          @if (subtitle) {
+            <p class="mt-1 text-xs text-slate-400">{{ subtitle }}</p>
+          }
         </div>
+        <span class="badge shrink-0" [ngClass]="badgeClass">{{ variantLabel }}</span>
       </div>
-    </div>
+      @if (progress !== undefined) {
+        <div class="progress mt-4">
+          <div class="h-full rounded-full progress-grow" [ngClass]="barClass" [style.width.%]="progress"></div>
+        </div>
+      }
+    </article>
   `,
-  styles: []
+  styles: [`:host { display: block; }`],
 })
 export class StatCardComponent {
   @Input() title: string = '';
@@ -32,4 +33,22 @@ export class StatCardComponent {
   @Input() variant: 'primary' | 'success' | 'warning' | 'info' | 'danger' = 'primary';
   @Input() progress?: number;
   @Input() progressVariant: string = 'success';
+
+  get variantLabel(): string {
+    return { primary: 'Total', success: 'OK', warning: 'Atención', info: 'Info', danger: 'Riesgo' }[this.variant];
+  }
+
+  get badgeClass(): string {
+    return `badge-${this.variant === 'info' ? 'primary' : this.variant}`;
+  }
+
+  get barClass(): string {
+    return {
+      success: 'bg-emerald-500',
+      warning: 'bg-amber-500',
+      danger: 'bg-red-500',
+      primary: 'bg-brand-500',
+      info: 'bg-sky-500',
+    }[this.progressVariant] ?? 'bg-emerald-500';
+  }
 }
