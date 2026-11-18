@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { LoanService, LoanCalculator } from '../../core/services/loan.service';
 import { PersonService } from '../../core/services/person.service';
 import { PaymentService } from '../../core/services/payment.service';
-import { AuthService } from '../../core/services/auth.service';
-import { Payment } from '../../core/models';
+import { Payment, PaymentMethod } from '../../core/models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-mis-pagos',
@@ -22,6 +22,10 @@ import { Payment } from '../../core/models';
           <i class="bi bi-plus-lg me-1"></i> Registrar Pago
         </button>
       </div>
+
+      @if (pageError()) {
+        <div class="alert alert-danger mb-3" role="alert">{{ pageError() }}</div>
+      }
 
       <!-- Filtros: cliente, texto y fecha -->
       <div class="card border-0 shadow-sm mb-4">
@@ -109,7 +113,7 @@ import { Payment } from '../../core/models';
               } @empty {
                 <tr>
                   <td colspan="7" class="text-center py-4 text-muted">
-                    No hay pagos registrados
+                    {{ paymentService.loading() ? 'Cargando pagos…' : 'No hay pagos registrados' }}
                   </td>
                 </tr>
               }
@@ -160,16 +164,20 @@ import { Payment } from '../../core/models';
                   <option value="cash">Efectivo</option>
                   <option value="transfer">Transferencia</option>
                   <option value="card">Tarjeta</option>
+                  <option value="mixed">Mixto</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label small">Notas</label>
                 <textarea class="form-control form-control-sm" [(ngModel)]="form.notes" rows="2"></textarea>
               </div>
+              @if (formError()) {
+                <div class="alert alert-danger py-2 small" role="alert">{{ formError() }}</div>
+              }
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary btn-sm" (click)="closeModal()">Cancelar</button>
-              <button type="button" class="btn btn-primary btn-sm" (click)="savePayment()">Guardar</button>
+              <button type="button" class="btn btn-primary btn-sm" (click)="savePayment()" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar' }}</button>
             </div>
           </div>
         </div>
@@ -204,10 +212,12 @@ import { Payment } from '../../core/models';
 export class MisPagosComponent {
   private loanService = inject(LoanService);
   private personService = inject(PersonService);
-  private paymentService = inject(PaymentService);
-  private authService = inject(AuthService);
+  paymentService = inject(PaymentService);
 
   showModal = signal(false);
+  saving = signal(false);
+  formError = signal('');
+  pageError = signal('');
   showDeleteConfirm = signal(false);
   paymentToDelete = signal<Payment | null>(null);
 
@@ -220,31 +230,25 @@ export class MisPagosComponent {
     loanId: '',
     amount: 0,
     date: new Date().toISOString().split('T')[0],
-    paymentMethod: 'cash',
+    paymentMethod: 'cash' as PaymentMethod,
     notes: ''
   };
 
-  activeLoans = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    return this.loanService.getActiveOwnLoans(userId);
-  });
+  private ownLoans = computed(() =>
+    this.loanService.getDataSignal()().filter(l => l.loanType === 'own' || !l.lenderId),
+  );
+
+  activeLoans = computed(() => this.ownLoans().filter(l => l.status !== 'completed'));
 
   payments = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    const ownLoans = this.loanService.getOwnLoans(userId);
-    const loanIds = new Set(ownLoans.map(l => l.id));
-    return this.paymentService.getAll().filter(p => loanIds.has(p.loanId));
+    const loanIds = new Set(this.ownLoans().map(l => l.id));
+    return this.paymentService.getDataSignal()().filter(p => loanIds.has(p.loanId));
   });
 
   /** Clientes con préstamos propios (opciones del filtro) */
   clientsForFilter = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    const ownLoans = this.loanService.getOwnLoans(userId);
-    const ids = new Set(ownLoans.map(l => l.personId));
-    return this.personService.getByUserId(userId)
+    const ids = new Set(this.ownLoans().map(l => l.personId));
+    return this.personService.getDataSignal()()
       .filter(p => ids.has(p.id))
       .sort((a, b) => a.name.localeCompare(b.name));
   });
@@ -265,7 +269,7 @@ export class MisPagosComponent {
     const personId = this.filterPersonId();
     if (personId !== 'all') {
       const loanIds = new Set(
-        this.loanService.getOwnLoans(this.authService.getUserId() || '')
+        this.ownLoans()
           .filter(l => l.personId === personId)
           .map(l => l.id),
       );
@@ -329,6 +333,7 @@ export class MisPagosComponent {
 
   openModal() {
     this.resetForm();
+    this.formError.set('');
     this.showModal.set(true);
   }
 
@@ -342,7 +347,7 @@ export class MisPagosComponent {
       loanId: '',
       amount: 0,
       date: new Date().toISOString().split('T')[0],
-      paymentMethod: 'cash',
+      paymentMethod: 'cash' as PaymentMethod,
       notes: ''
     };
   }
@@ -355,22 +360,38 @@ export class MisPagosComponent {
   }
 
   savePayment() {
-    if (!this.form.loanId || this.form.amount <= 0) {
-      alert('Complete los campos requeridos');
+    if (this.saving()) return;
+    this.formError.set('');
+
+    if (!this.form.loanId || !(Number(this.form.amount) > 0)) {
+      this.formError.set('Selecciona un préstamo e indica un monto mayor a 0');
+      return;
+    }
+    if (Number(this.form.amount) > this.getPendingForLoan(this.form.loanId) + 0.001) {
+      this.formError.set('El monto excede el saldo pendiente del préstamo');
       return;
     }
 
-    try {
-      this.paymentService.create({
+    this.saving.set(true);
+    this.paymentService
+      .create({
         loanId: this.form.loanId,
-        amount: this.form.amount,
+        amount: Number(this.form.amount),
         date: this.form.date,
-        notes: this.form.notes
+        method: this.form.paymentMethod,
+        notes: this.form.notes,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.closeModal();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          // 422: el préstamo ya está pagado o el monto excede el saldo
+          this.formError.set(apiErrorMessage(err, 'No se pudo registrar el pago'));
+        },
       });
-      this.closeModal();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al guardar');
-    }
   }
 
   confirmDelete(payment: Payment) {
@@ -381,7 +402,10 @@ export class MisPagosComponent {
   deletePayment() {
     const payment = this.paymentToDelete();
     if (payment) {
-      this.paymentService.delete(payment.id);
+      this.pageError.set('');
+      this.paymentService.delete(payment.id).subscribe({
+        error: (err) => this.pageError.set(apiErrorMessage(err, 'No se pudo eliminar el pago')),
+      });
     }
     this.showDeleteConfirm.set(false);
     this.paymentToDelete.set(null);

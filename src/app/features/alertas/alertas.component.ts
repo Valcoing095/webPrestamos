@@ -1,9 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MoraService, MoraAlert, MoraSeverity } from '../../core/services/mora.service';
 import { LoanCalculator } from '../../core/services/loan.service';
-import { AuthService } from '../../core/services/auth.service';
 
 type SeverityFilter = 'all' | MoraSeverity;
 
@@ -108,7 +107,7 @@ type SeverityFilter = 'all' | MoraSeverity;
             <span class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-50 text-emerald-500">
               <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
             </span>
-            <h3 class="mt-4 text-lg font-bold text-slate-900">Sin mora por aquí</h3>
+            <h3 class="mt-4 text-lg font-bold text-slate-900">{{ moraService.loading() ? 'Cargando alertas…' : 'Sin mora por aquí' }}</h3>
             <p class="mx-auto mt-1 max-w-sm text-sm text-slate-500">
               Ninguna deuda coincide con este filtro. Cuando un pago se atrase según su frecuencia, aparecerá en esta lista.
             </p>
@@ -120,9 +119,8 @@ type SeverityFilter = 'all' | MoraSeverity;
   `,
   styles: [`:host { display: block; }`],
 })
-export class AlertasComponent {
-  private moraService = inject(MoraService);
-  private authService = inject(AuthService);
+export class AlertasComponent implements OnInit {
+  moraService = inject(MoraService);
 
   severityFilter = signal<SeverityFilter>('all');
 
@@ -134,7 +132,13 @@ export class AlertasComponent {
     { value: 'today', label: 'Vencen hoy' },
   ];
 
-  alerts = computed(() => this.moraService.getAlerts(this.authService.getUserId() || ''));
+  alerts = this.moraService.alerts;
+
+  ngOnInit(): void {
+    // Las alertas se calculan en el backend: se piden de nuevo al entrar
+    this.moraService.load().subscribe();
+  }
+
   overdue = computed(() => this.alerts().filter(a => !a.isDueToday));
   dueToday = computed(() => this.alerts().filter(a => a.isDueToday));
   amountAtRisk = computed(() => this.overdue().reduce((sum, a) => sum + a.pendingAmount, 0));

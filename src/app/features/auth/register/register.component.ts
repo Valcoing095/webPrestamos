@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { apiErrorMessage } from '../../../core/api/api-error';
 
 @Component({
   selector: 'app-register',
@@ -23,7 +24,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
         <div class="relative max-w-md animate-fadeIn">
           <h2 class="text-4xl font-extrabold leading-tight tracking-tight">Empieza a prestar con orden desde hoy.</h2>
-          <p class="mt-4 text-indigo-200/85">Crea tu cuenta en menos de un minuto. Sin tarjetas y sin instalaciones: todo queda en tu dispositivo.</p>
+          <p class="mt-4 text-indigo-200/85">Crea tu cuenta en menos de un minuto. Sin tarjetas y sin instalaciones: tus datos quedan guardados en tu cuenta.</p>
           <ul class="mt-10 space-y-3.5 text-sm">
             <li class="flex gap-3"><span class="text-emerald-300">✓</span> Préstamos propios y de prestamistas por ruta</li>
             <li class="flex gap-3"><span class="text-emerald-300">✓</span> Pagos, saldos y liquidación diaria al instante</li>
@@ -31,7 +32,7 @@ import { AuthService } from '../../../core/services/auth.service';
           </ul>
         </div>
 
-        <p class="relative text-xs text-indigo-200/50">Tus datos se guardan localmente en este dispositivo.</p>
+        <p class="relative text-xs text-indigo-200/50">Tus datos se guardan de forma segura en tu cuenta.</p>
       </aside>
 
       <!-- Formulario -->
@@ -66,7 +67,7 @@ import { AuthService } from '../../../core/services/auth.service';
               <label class="form-label" for="password">Contraseña</label>
               <div class="relative">
                 <input id="password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password"
-                       class="form-input pr-12" placeholder="Mínimo 4 caracteres" autocomplete="new-password" required />
+                       class="form-input pr-12" placeholder="Entre 8 y 72 caracteres" minlength="8" maxlength="72" autocomplete="new-password" required />
                 <button type="button" (click)="showPassword.update(v => !v)"
                         class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                         [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'">
@@ -118,19 +119,21 @@ export class RegisterComponent {
       this.error.set('Las contraseñas no coinciden');
       return;
     }
-    if (this.password.length < 4) {
-      this.error.set('La contraseña debe tener al menos 4 caracteres');
+    if (this.password.length < 8 || this.password.length > 72) {
+      this.error.set('La contraseña debe tener entre 8 y 72 caracteres');
       return;
     }
 
     this.loading.set(true);
-    try {
-      this.authService.register(this.name.trim(), this.email.trim(), this.password);
-      this.router.navigate(['/dashboard']);
-    } catch (err: any) {
-      this.error.set(err.message || 'No fue posible crear la cuenta');
-    } finally {
-      this.loading.set(false);
-    }
+    this.authService.register(this.name.trim(), this.email.trim(), this.password).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(err, 'No fue posible crear la cuenta'));
+      },
+    });
   }
 }

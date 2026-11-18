@@ -1,14 +1,16 @@
-import { Component, OnInit, signal, computed, PLATFORM_ID, Inject, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
-import { AuthService } from '../../core/services/auth.service';
+import { ChartConfiguration, ChartData } from 'chart.js';
 import { LoanService, LoanCalculator } from '../../core/services/loan.service';
-import { PaymentService } from '../../core/services/payment.service';
 import { PersonService } from '../../core/services/person.service';
 import { LenderService } from '../../core/services/lender.service';
 import { RouteService } from '../../core/services/route.service';
+import { MoraService } from '../../core/services/mora.service';
+import { ReportService } from '../../core/services/report.service';
+import { DashboardSummary, FollowUpItem, TrackingNote } from '../../core/models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-seguimiento',
@@ -22,6 +24,10 @@ import { RouteService } from '../../core/services/route.service';
         <h1 class="h3 mb-1">Seguimiento y Analiticas</h1>
         <p class="text-muted mb-0">Dashboard avanzado con metricas clave</p>
       </header>
+
+      @if (error()) {
+        <div class="alert alert-danger mb-3" role="alert">{{ error() }}</div>
+      }
 
       <!-- Filtros -->
       <div class="card border-0 shadow-sm mb-4">
@@ -82,8 +88,8 @@ import { RouteService } from '../../core/services/route.service';
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-success"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
                 <div class="ms-2 ms-md-3">
-                  <p class="text-muted mb-0" style="font-size: 0.65rem;">Rentabilidad</p>
-                  <h6 class="mb-0 h6 h5-md">{{ rentabilidad() }}%</h6>
+                  <p class="text-muted mb-0" style="font-size: 0.65rem;">Cobrado del total</p>
+                  <h6 class="mb-0 h6 h5-md">{{ collectPercentage() }}%</h6>
                 </div>
               </div>
             </div>
@@ -190,7 +196,7 @@ import { RouteService } from '../../core/services/route.service';
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="6" class="text-center text-muted py-4">No hay datos disponibles</td>
+                    <td colspan="6" class="text-center text-muted py-4">{{ loading() ? 'Cargando datos…' : 'No hay datos disponibles' }}</td>
                   </tr>
                 }
               </tbody>
@@ -198,6 +204,94 @@ import { RouteService } from '../../core/services/route.service';
           </div>
         </div>
       </div>
+
+      <!-- Seguimiento por préstamo: avance y notas -->
+      <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-transparent">
+          <h6 class="card-title mb-0">Avance por préstamo</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 table-sm align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th class="px-3">Cliente</th>
+                  <th>Estado</th>
+                  <th class="d-none d-sm-table-cell">Total</th>
+                  <th>Cobrado</th>
+                  <th style="min-width: 110px;">Avance</th>
+                  <th class="d-none d-sm-table-cell">Último pago</th>
+                  <th class="text-right">Notas</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of filteredFollowUp(); track item.loanId) {
+                  <tr>
+                    <td class="px-3 fw-medium small">{{ personName(item.personId) }}</td>
+                    <td><span class="badge" [class]="statusClass(item.status)">{{ statusLabel(item.status) }}</span></td>
+                    <td class="d-none d-sm-table-cell"><small>{{ formatCurrency(item.totalToCollect) }}</small></td>
+                    <td class="text-success"><small>{{ formatCurrency(item.paid) }}</small></td>
+                    <td>
+                      <div class="progress"><div class="progress-bar" [style.width.%]="item.progress"></div></div>
+                      <small class="text-muted">{{ item.progress }}%</small>
+                    </td>
+                    <td class="d-none d-sm-table-cell"><small>{{ item.lastPaymentDate ? formatDate(item.lastPaymentDate) : 'Sin pagos' }}</small></td>
+                    <td class="text-right">
+                      <button class="btn btn-sm btn-outline-primary" (click)="openNotes(item)">Ver notas</button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-4">{{ loading() ? 'Cargando datos…' : 'No hay préstamos para mostrar' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas de seguimiento del préstamo seleccionado -->
+      @if (notesLoan(); as nl) {
+        <div class="modal-backdrop"></div>
+        <div class="modal" (click)="closeNotes()">
+          <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Notas · {{ personName(nl.personId) }}</h5>
+                <button type="button" class="btn-close" (click)="closeNotes()"></button>
+              </div>
+              <div class="modal-body">
+                <div class="d-flex gap-2 mb-3">
+                  <input class="form-control form-control-sm" placeholder="Escribe una nota de seguimiento" maxlength="2000"
+                         [(ngModel)]="newNote" (keyup.enter)="addNote()" />
+                  <button class="btn btn-primary btn-sm" (click)="addNote()" [disabled]="savingNote()">
+                    {{ savingNote() ? 'Guardando…' : 'Agregar' }}
+                  </button>
+                </div>
+                @if (notesError()) {
+                  <div class="alert alert-danger py-2 small" role="alert">{{ notesError() }}</div>
+                }
+                @if (notesLoading()) {
+                  <p class="text-muted small mb-0">Cargando notas…</p>
+                } @else {
+                  @for (note of notes(); track note.id) {
+                    <div class="d-flex justify-content-between align-items-start gap-3 py-2 border-b" style="border-color: var(--line);">
+                      <div>
+                        <p class="mb-0 small">{{ note.text }}</p>
+                        <small class="text-muted">{{ formatDate(note.createdAt) }}</small>
+                      </div>
+                      <button class="btn btn-sm btn-outline-danger" (click)="removeNote(note)">Eliminar</button>
+                    </div>
+                  } @empty {
+                    <p class="text-muted small mb-0">Este préstamo aún no tiene notas.</p>
+                  }
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -206,18 +300,32 @@ import { RouteService } from '../../core/services/route.service';
   `],
 })
 export class SeguimientoComponent implements OnInit {
-  isBrowser: boolean;
+  isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   filterStartDate = '';
   filterEndDate = '';
   filterLenderId = '';
   filterRouteId = '';
 
-  private authService: AuthService;
-  private loanService: LoanService;
-  private paymentService: PaymentService;
-  private personService: PersonService;
-  private lenderService: LenderService;
-  private routeService: RouteService;
+  private loanService = inject(LoanService);
+  private personService = inject(PersonService);
+  private lenderService = inject(LenderService);
+  private routeService = inject(RouteService);
+  private moraService = inject(MoraService);
+  private reportService = inject(ReportService);
+
+  // Datos calculados por el backend (/reports/dashboard y /reports/follow-up)
+  dashboard = signal<DashboardSummary | null>(null);
+  followUp = signal<FollowUpItem[]>([]);
+  loading = signal(false);
+  error = signal('');
+
+  // Notas de seguimiento (recurso /loans/:id/notes)
+  notesLoan = signal<FollowUpItem | null>(null);
+  notes = signal<TrackingNote[]>([]);
+  notesLoading = signal(false);
+  notesError = signal('');
+  savingNote = signal(false);
+  newNote = '';
 
   barChartOptions: ChartConfiguration['options'] = {
     responsive: true,
@@ -238,115 +346,63 @@ export class SeguimientoComponent implements OnInit {
     }
   };
 
-  constructor(
-    @Inject(PLATFORM_ID) platformId: Object,
-    authService: AuthService,
-    loanService: LoanService,
-    paymentService: PaymentService,
-    personService: PersonService,
-    lenderService: LenderService,
-    routeService: RouteService
-  ) {
-    this.isBrowser = isPlatformBrowser(platformId);
-    this.authService = authService;
-    this.loanService = loanService;
-    this.paymentService = paymentService;
-    this.personService = personService;
-    this.lenderService = lenderService;
-    this.routeService = routeService;
-  }
-
   ngOnInit(): void {
-    this.loanService.setPaymentService(this.paymentService);
-    // Set default date range (last 30 days)
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    this.filterEndDate = today.toISOString().split('T')[0];
-    this.filterStartDate = thirtyDaysAgo.toISOString().split('T')[0];
+    this.loadReports();
+    this.moraService.load().subscribe();
   }
 
-  private userId = computed(() => this.authService.getUserId());
-
-  lenders = computed(() => {
-    const uid = this.authService.getUserId();
-    return uid ? this.lenderService.getByUserId(uid) : [];
-  });
-
-  routes = computed(() => {
-    const uid = this.authService.getUserId();
-    return uid ? this.routeService.getByUserId(uid) : [];
-  });
-
-  loans = computed(() => {
-    const uid = this.authService.getUserId();
-    return uid ? this.loanService.getByUserId(uid) : [];
-  });
-
-  payments = computed(() => {
-    const uid = this.authService.getUserId();
-    return uid ? this.paymentService.getByUserId(uid) : [];
-  });
-
-  persons = computed(() => {
-    const uid = this.authService.getUserId();
-    return uid ? this.personService.getByUserId(uid) : [];
-  });
-
-  // KPIs
-  totalMora = computed(() => {
-    const loansData = this.loans();
-    let mora = 0;
-    loansData.forEach((loan: any) => {
-      const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-      const total = loan.totalToCollect || loan.amount;
-      const pending = total - totalPaid;
-      if (pending > 0 && loan.status === 'overdue') {
-        mora += pending;
-      }
+  loadReports(): void {
+    this.loading.set(true);
+    this.error.set('');
+    this.reportService.dashboard().subscribe({
+      next: (d) => this.dashboard.set(d),
+      error: (err) => this.error.set(apiErrorMessage(err, 'No se pudo cargar el resumen')),
     });
-    return mora;
-  });
-
-  rentabilidad = computed(() => {
-    const loansData = this.loans();
-    if (loansData.length === 0) return 0;
-    
-    const totalLoaned = loansData.reduce((sum: number, l: any) => sum + l.amount, 0);
-    const totalToCollect = loansData.reduce((sum: number, l: any) => sum + (l.totalToCollect || l.amount), 0);
-    const totalCollected = this.payments().reduce((sum: number, p: any) => sum + p.amount, 0);
-    
-    if (totalLoaned === 0) return 0;
-    const profit = totalCollected - totalLoaned;
-    return Math.round((profit / totalLoaned) * 100);
-  });
-
-  clientesActivos = computed(() => {
-    const activeLoans = this.loans().filter((loan: any) => {
-      const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-      const total = loan.totalToCollect || loan.amount;
-      return totalPaid < total;
+    this.reportService.followUp().subscribe({
+      next: (items) => {
+        this.followUp.set(items);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(err, 'No se pudo cargar el seguimiento'));
+      },
     });
-    const uniquePersonIds = new Set(activeLoans.map((l: any) => l.personId));
-    return uniquePersonIds.size;
+  }
+
+  lenders = this.lenderService.getDataSignal();
+  routes = this.routeService.getDataSignal();
+
+  /** Seguimiento filtrado por prestamista, ruta y fecha del préstamo */
+  filteredFollowUp = computed(() => {
+    return this.followUp().filter((item) => {
+      const loan = this.loanService.getById(item.loanId);
+      if (this.filterLenderId && item.lenderId !== this.filterLenderId) return false;
+      if (this.filterRouteId && loan?.routeId !== this.filterRouteId) return false;
+      if (this.filterStartDate && loan && loan.date < this.filterStartDate) return false;
+      if (this.filterEndDate && loan && loan.date > this.filterEndDate) return false;
+      return true;
+    });
   });
 
-  clientesMorosos = computed(() => {
-    const overdueLoans = this.loans().filter((loan: any) => loan.status === 'overdue');
-    const uniquePersonIds = new Set(overdueLoans.map((l: any) => l.personId));
-    return uniquePersonIds.size;
-  });
+  // KPIs (mora y porcentaje cobrado vienen del backend)
+  totalMora = computed(() => this.moraService.overdueAlerts().reduce((sum, a) => sum + a.pendingAmount, 0));
+
+  collectPercentage = computed(() => Math.round(this.dashboard()?.collectPercentage ?? 0));
+
+  clientesActivos = computed(
+    () => new Set(this.filteredFollowUp().filter((i) => i.status !== 'completed').map((i) => i.personId)).size,
+  );
+
+  clientesMorosos = computed(() => new Set(this.moraService.overdueAlerts().map((a) => a.personId)).size);
 
   // Chart Data
   lenderChartData = computed((): ChartData<'bar'> => {
-    const lenderData = this.lenders().map((lender: any) => {
-      const loansData = this.loans().filter((l: any) => l.lenderId === lender.id);
-      const totalLoaned = loansData.reduce((sum: number, l: any) => sum + l.amount, 0);
-      return {
-        name: lender.name,
-        amount: totalLoaned
-      };
-    });
+    const items = this.filteredFollowUp();
+    const lenderData = this.lenders().map((lender) => ({
+      name: lender.name,
+      amount: items.filter((i) => i.lenderId === lender.id).reduce((sum, i) => sum + i.amount, 0),
+    }));
 
     return {
       labels: lenderData.map(d => d.name),
@@ -358,16 +414,15 @@ export class SeguimientoComponent implements OnInit {
     };
   });
 
+  private itemsByRoute(routeId: string): FollowUpItem[] {
+    return this.filteredFollowUp().filter((i) => this.loanService.getById(i.loanId)?.routeId === routeId);
+  }
+
   routeChartData = computed((): ChartData<'doughnut'> => {
-    const routeData = this.routes().map((route: any) => {
-      const clients = this.persons().filter((p: any) => p.routeId === route.id);
-      const clientIds = clients.map((c: any) => c.id);
-      const loansData = this.loans().filter((l: any) => clientIds.includes(l.personId));
-      return {
-        name: route.name,
-        count: loansData.length
-      };
-    });
+    const routeData = this.routes().map((route) => ({
+      name: route.name,
+      count: this.itemsByRoute(route.id).length,
+    }));
 
     return {
       labels: routeData.map(d => d.name),
@@ -379,33 +434,93 @@ export class SeguimientoComponent implements OnInit {
   });
 
   routeSummaries = computed(() => {
-    return this.routes().map((route: any) => {
-      const clients = this.persons().filter((p: any) => p.routeId === route.id);
-      const clientIds = clients.map((c: any) => c.id);
-      const loansData = this.loans().filter((l: any) => clientIds.includes(l.personId));
-      
-      const activeLoans = loansData.filter((loan: any) => {
-        const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-        const total = loan.totalToCollect || loan.amount;
-        return totalPaid < total;
-      });
-
-      const totalAmount = loansData.reduce((sum: number, l: any) => sum + (l.totalToCollect || l.amount), 0);
-      const collected = loansData.reduce((sum: number, l: any) => sum + this.paymentService.getTotalPaidForLoan(l.id), 0);
-
+    return this.routes().map((route) => {
+      const items = this.itemsByRoute(route.id);
       return {
         routeId: route.id,
         routeName: route.name,
-        clientCount: clients.length,
-        activeLoans: activeLoans.length,
-        totalAmount,
-        collected,
-        pending: totalAmount - collected
+        clientCount: new Set(items.map((i) => i.personId)).size,
+        activeLoans: items.filter((i) => i.status !== 'completed').length,
+        totalAmount: items.reduce((sum, i) => sum + i.totalToCollect, 0),
+        collected: items.reduce((sum, i) => sum + i.paid, 0),
+        pending: items.reduce((sum, i) => sum + i.pending, 0),
       };
     });
   });
 
+  personName(personId: string): string {
+    return this.personService.getById(personId)?.name || 'Desconocido';
+  }
+
+  statusLabel(status: FollowUpItem['status']): string {
+    return status === 'completed' ? 'Pagado' : status === 'overdue' ? 'En mora' : 'Activo';
+  }
+
+  statusClass(status: FollowUpItem['status']): string {
+    return status === 'completed' ? 'badge-success' : status === 'overdue' ? 'badge-danger' : 'badge-primary';
+  }
+
+  // --- Notas ---
+
+  openNotes(item: FollowUpItem): void {
+    this.notesLoan.set(item);
+    this.notes.set([]);
+    this.notesError.set('');
+    this.newNote = '';
+    this.notesLoading.set(true);
+    this.loanService.getNotes(item.loanId).subscribe({
+      next: (list) => {
+        this.notes.set(list);
+        this.notesLoading.set(false);
+      },
+      error: (err) => {
+        this.notesLoading.set(false);
+        this.notesError.set(apiErrorMessage(err, 'No se pudieron cargar las notas'));
+      },
+    });
+  }
+
+  closeNotes(): void {
+    this.notesLoan.set(null);
+  }
+
+  addNote(): void {
+    const loan = this.notesLoan();
+    const text = this.newNote.trim();
+    if (!loan || this.savingNote()) return;
+    if (!text) {
+      this.notesError.set('Escribe el texto de la nota');
+      return;
+    }
+    this.notesError.set('');
+    this.savingNote.set(true);
+    this.loanService.addNote(loan.loanId, text).subscribe({
+      next: (note) => {
+        this.notes.update((list) => [note, ...list]);
+        this.newNote = '';
+        this.savingNote.set(false);
+      },
+      error: (err) => {
+        this.savingNote.set(false);
+        this.notesError.set(apiErrorMessage(err, 'No se pudo guardar la nota'));
+      },
+    });
+  }
+
+  removeNote(note: TrackingNote): void {
+    const loan = this.notesLoan();
+    if (!loan) return;
+    this.loanService.deleteNote(loan.loanId, note.id).subscribe({
+      next: () => this.notes.update((list) => list.filter((n) => n.id !== note.id)),
+      error: (err) => this.notesError.set(apiErrorMessage(err, 'No se pudo eliminar la nota')),
+    });
+  }
+
   formatCurrency(amount: number): string {
     return LoanCalculator.formatCurrency(amount);
+  }
+
+  formatDate(dateStr: string): string {
+    return LoanCalculator.formatDate(dateStr);
   }
 }

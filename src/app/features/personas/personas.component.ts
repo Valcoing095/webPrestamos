@@ -1,8 +1,7 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  AuthService,
   PersonService,
   LoanService,
   PaymentService,
@@ -10,6 +9,7 @@ import {
   RouteService
 } from '../../core/services';
 import { Person } from '../../core/models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-personas',
@@ -95,7 +95,7 @@ import { Person } from '../../core/models';
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
               </svg>
             </div>
-            <p class="text-sm text-slate-500">No hay clientes registrados</p>
+            <p class="text-sm text-slate-500">{{ personService.loading() ? 'Cargando clientes…' : 'No hay clientes registrados' }}</p>
           </div>
         }
       </div>
@@ -143,7 +143,7 @@ import { Person } from '../../core/models';
           </div>
           <div class="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
             <button class="px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" (click)="showAddModal.set(false)">Cancelar</button>
-            <button class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors" (click)="onSubmit()">Guardar</button>
+            <button class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors" (click)="onSubmit()" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Guardar' }}</button>
           </div>
         </div>
       </div>
@@ -191,7 +191,7 @@ import { Person } from '../../core/models';
           </div>
           <div class="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
             <button class="px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" (click)="closeEditModal()">Cancelar</button>
-            <button class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors" (click)="saveEdit()">Actualizar</button>
+            <button class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors" (click)="saveEdit()" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Actualizar' }}</button>
           </div>
         </div>
       </div>
@@ -281,24 +281,19 @@ export class PersonasComponent implements OnInit {
   selectedPerson = signal<Person | null>(null);
   toast = signal<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  constructor(
-    public authService: AuthService,
-    private personService: PersonService,
-    private loanService: LoanService,
-    private paymentService: PaymentService,
-    private routeService: RouteService
-  ) {}
+  personService = inject(PersonService);
+  private loanService = inject(LoanService);
+  private paymentService = inject(PaymentService);
+  private routeService = inject(RouteService);
+
+  saving = signal(false);
 
   ngOnInit(): void {
-    this.loanService.setPaymentService(this.paymentService);
+    this.personService.load().subscribe();
+    this.loanService.load().subscribe();
   }
 
-  private userId = computed(() => this.authService.getUserId());
-
-  persons = computed(() => {
-    const uid = this.userId();
-    return uid ? this.personService.getPersonsSignal(uid)() : [];
-  });
+  persons = this.personService.getDataSignal();
 
   filteredPersons = computed(() => {
     const term = this.searchTerm.toLowerCase();
@@ -306,22 +301,14 @@ export class PersonasComponent implements OnInit {
     return this.persons().filter(p => p.name.toLowerCase().includes(term));
   });
 
-  routes = computed(() => {
-    const uid = this.userId();
-    return uid ? this.routeService.getRoutesSignal(uid)() : [];
-  });
+  routes = this.routeService.getDataSignal();
 
   getRouteName(routeId: string): string {
     return this.routeService.getById(routeId)?.name || 'Sin ruta';
   }
 
   getActiveLoansCount(personId: string): number {
-    const loans = this.loanService.getByPersonId(personId);
-    return loans.filter((loan) => {
-      const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-      const total = loan.totalToCollect || loan.amount;
-      return totalPaid < total;
-    }).length;
+    return this.loanService.getByPersonId(personId).filter((loan) => loan.status !== 'completed').length;
   }
 
   personLoans = computed(() => {
@@ -349,9 +336,7 @@ export class PersonasComponent implements OnInit {
   }
 
   isLoanCompleted(loan: any): boolean {
-    const totalPaid = this.paymentService.getTotalPaidForLoan(loan.id);
-    const total = loan.totalToCollect || LoanCalculator.calculateTotalWithInterest(loan.amount, loan.interest);
-    return totalPaid >= total;
+    return loan.status === 'completed';
   }
 
   getLoanStatus(loan: any): string {
@@ -360,22 +345,33 @@ export class PersonasComponent implements OnInit {
   }
 
   onSubmit(): void {
-    try {
-      const userId = this.authService.getUserId();
-      if (!userId) return;
-
-      this.personService.create({
-        ...this.formData,
-        routeId: this.formData.routeId || null,
-        userId,
-      });
-
-  this.showToast('Persona agregada', 'success');
-  this.formData = { name: '', phone: '', address: '', notes: '', routeId: '' };
-  this.showAddModal.set(false);
-    } catch (error: any) {
-      this.showToast(error.message, 'error');
+    if (this.saving()) return;
+    if (!this.formData.name.trim()) {
+      this.showToast('El nombre es requerido', 'error');
+      return;
     }
+
+    this.saving.set(true);
+    this.personService
+      .create({
+        name: this.formData.name.trim(),
+        phone: this.formData.phone,
+        address: this.formData.address,
+        notes: this.formData.notes,
+        routeId: this.formData.routeId || null,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.showToast('Persona agregada', 'success');
+          this.formData = { name: '', phone: '', address: '', notes: '', routeId: '' };
+          this.showAddModal.set(false);
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.showToast(apiErrorMessage(err, 'No se pudo guardar la persona'), 'error');
+        },
+      });
   }
 
   editPerson(person: Person): void {
@@ -385,13 +381,32 @@ export class PersonasComponent implements OnInit {
   }
 
   saveEdit(): void {
-    try {
-      this.personService.updatePerson(this.editData.id, this.editData);
-      this.showToast('Persona actualizada', 'success');
-      this.closeEditModal();
-    } catch (error: any) {
-      this.showToast(error.message, 'error');
+    if (this.saving()) return;
+    if (!this.editData.name?.trim()) {
+      this.showToast('El nombre es requerido', 'error');
+      return;
     }
+
+    this.saving.set(true);
+    this.personService
+      .update(this.editData.id, {
+        name: this.editData.name.trim(),
+        phone: this.editData.phone ?? '',
+        address: this.editData.address ?? '',
+        notes: this.editData.notes ?? '',
+        routeId: this.editData.routeId || null,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.showToast('Persona actualizada', 'success');
+          this.closeEditModal();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.showToast(apiErrorMessage(err, 'No se pudo actualizar la persona'), 'error');
+        },
+      });
   }
 
   closeEditModal(): void {
@@ -418,8 +433,10 @@ export class PersonasComponent implements OnInit {
   deletePerson(): void {
     const person = this.personToDelete();
     if (person) {
-      this.personService.delete(person.id);
-      this.showToast('Persona eliminada', 'success');
+      this.personService.delete(person.id).subscribe({
+        next: () => this.showToast('Persona eliminada', 'success'),
+        error: (err) => this.showToast(apiErrorMessage(err, 'No se pudo eliminar la persona'), 'error'),
+      });
     }
     this.closeConfirmModal();
   }

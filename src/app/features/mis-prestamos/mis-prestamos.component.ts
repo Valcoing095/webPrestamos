@@ -2,12 +2,12 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { LoanService, LoanCalculator } from '../../core/services/loan.service';
+import { LoanService, LoanCalculator, toLoanPayload } from '../../core/services/loan.service';
 import { MoraService, MoraAlert } from '../../core/services/mora.service';
 import { PersonService } from '../../core/services/person.service';
 import { PaymentService } from '../../core/services/payment.service';
-import { AuthService } from '../../core/services/auth.service';
-import { Loan, Person, Payment, PaymentFrequency } from '../../core/models';
+import { Loan, Payment, PaymentFrequency } from '../../core/models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-mis-prestamos',
@@ -31,6 +31,10 @@ import { Loan, Person, Payment, PaymentFrequency } from '../../core/models';
           Nuevo Prestamo
         </button>
       </div>
+
+      @if (pageError()) {
+        <div class="alert alert-danger" role="alert">{{ pageError() }}</div>
+      }
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -181,8 +185,15 @@ import { Loan, Person, Payment, PaymentFrequency } from '../../core/models';
               } @empty {
                 <tr>
                   <td colspan="8" class="px-6 py-12 text-center">
-                    <p class="text-sm font-medium text-slate-500">No se encontraron préstamos con esos filtros</p>
-                    <p class="mt-1 text-xs text-slate-400">Prueba con otro cliente o limpia los filtros.</p>
+                    @if (loanService.loading() && loans().length === 0) {
+                      <p class="text-sm font-medium text-slate-500">Cargando préstamos…</p>
+                    } @else if (loans().length === 0) {
+                      <p class="text-sm font-medium text-slate-500">Aún no tienes préstamos propios</p>
+                      <p class="mt-1 text-xs text-slate-400">Crea el primero con el botón "Nuevo préstamo".</p>
+                    } @else {
+                      <p class="text-sm font-medium text-slate-500">No se encontraron préstamos con esos filtros</p>
+                      <p class="mt-1 text-xs text-slate-400">Prueba con otro cliente o limpia los filtros.</p>
+                    }
                     @if (hasActiveFilters()) {
                       <button class="btn btn-outline btn-sm mt-4" (click)="clearFilters()">Limpiar filtros</button>
                     }
@@ -346,11 +357,14 @@ import { Loan, Person, Payment, PaymentFrequency } from '../../core/models';
                 <textarea class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none" [(ngModel)]="form.notes" rows="2"></textarea>
               </div>
             </div>
+            @if (formError()) {
+              <div class="alert alert-danger" role="alert">{{ formError() }}</div>
+            }
           </div>
           <div class="flex items-center justify-end gap-3 px-6 py-4 bg-slate-50/50 rounded-b-2xl">
             <button class="px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" (click)="closeModal()">Cancelar</button>
-            <button class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors" (click)="saveLoan()">
-              {{ editingLoan() ? 'Actualizar' : 'Guardar' }}
+            <button class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors" (click)="saveLoan()" [disabled]="saving()">
+              {{ saving() ? 'Guardando…' : (editingLoan() ? 'Actualizar' : 'Guardar') }}
             </button>
           </div>
         </div>
@@ -386,13 +400,15 @@ import { Loan, Person, Payment, PaymentFrequency } from '../../core/models';
   `]
 })
 export class MisPrestamosComponent implements OnInit {
-  private loanService = inject(LoanService);
+  loanService = inject(LoanService);
   private personService = inject(PersonService);
   private paymentService = inject(PaymentService);
-  private authService = inject(AuthService);
   private moraService = inject(MoraService);
 
   showModal = signal(false);
+  saving = signal(false);
+  formError = signal('');
+  pageError = signal('');
   showDeleteConfirm = signal(false);
   editingLoan = signal<Loan | null>(null);
   loanToDelete = signal<Loan | null>(null);
@@ -415,17 +431,9 @@ export class MisPrestamosComponent implements OnInit {
     notes: ''
   };
 
-  loans = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    return this.loanService.getOwnLoans(userId);
-  });
+  loans = computed(() => this.loanService.getDataSignal()().filter(l => l.loanType === 'own' || !l.lenderId));
 
-  persons = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    return this.personService.getByUserId(userId);
-  });
+  persons = this.personService.getDataSignal();
 
   /** Clientes que tienen al menos un préstamo propio (para el filtro) */
   clientsWithLoans = computed(() => {
@@ -502,15 +510,13 @@ export class MisPrestamosComponent implements OnInit {
   });
 
   stats = computed(() => {
-    const loans = this.loans();
-    const payments = loans.flatMap(loan =>
-      this.paymentService.getByLoanId(loan.id).map(p => ({ loanId: loan.id, amount: p.amount }))
-    );
-    return LoanCalculator.getSummary(loans, payments);
+    return LoanCalculator.getSummary(this.loans());
   });
 
   ngOnInit() {
-    this.loanService.setPaymentService(this.paymentService);
+    // Refresca desde el backend (las listas ya se cargan al iniciar sesión)
+    this.loanService.load().subscribe();
+    this.paymentService.load().subscribe();
   }
 
   getPersonName(personId: string): string {
@@ -559,7 +565,7 @@ export class MisPrestamosComponent implements OnInit {
   }
 
   isCompleted(loan: Loan): boolean {
-    return this.getPending(loan) <= 0;
+    return loan.status === 'completed' || this.getPending(loan) <= 0;
   }
 
   getFrequencyLabel(frequency: PaymentFrequency): string {
@@ -577,6 +583,7 @@ export class MisPrestamosComponent implements OnInit {
   openModal() {
     this.editingLoan.set(null);
     this.resetForm();
+    this.formError.set('');
     this.showModal.set(true);
   }
 
@@ -591,6 +598,7 @@ export class MisPrestamosComponent implements OnInit {
       paymentFrequency: loan.paymentFrequency,
       notes: loan.notes
     };
+    this.formError.set('');
     this.showModal.set(true);
   }
 
@@ -613,28 +621,35 @@ export class MisPrestamosComponent implements OnInit {
   }
 
   saveLoan() {
-    const userId = this.authService.getUserId();
-    if (!userId) return;
+    if (this.saving()) return;
+    this.formError.set('');
 
-    try {
-      if (this.editingLoan()) {
-        this.loanService.updateLoan(this.editingLoan()!.id, {
-          ...this.form,
-          loanType: 'own'
-        });
-      } else {
-        this.loanService.create({
-          ...this.form,
-          userId,
-          loanType: 'own',
-          lenderId: null,
-          routeId: null
-        });
-      }
-      this.closeModal();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al guardar');
+    if (!this.form.personId) {
+      this.formError.set('Selecciona un cliente');
+      return;
     }
+    if (!(Number(this.form.amount) > 0)) {
+      this.formError.set('El monto debe ser mayor a 0');
+      return;
+    }
+
+    const payload = toLoanPayload(this.form);
+    const editing = this.editingLoan();
+    const request = editing
+      ? this.loanService.update(editing.id, { ...payload, loanType: 'own' })
+      : this.loanService.create({ ...payload, loanType: 'own', lenderId: null, routeId: null });
+
+    this.saving.set(true);
+    request.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeModal();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.formError.set(apiErrorMessage(err, 'No se pudo guardar el préstamo'));
+      },
+    });
   }
 
   confirmDelete(loan: Loan) {
@@ -645,10 +660,15 @@ export class MisPrestamosComponent implements OnInit {
   deleteLoan() {
     const loan = this.loanToDelete();
     if (loan) {
-      this.loanService.deleteCascade(loan.id);
-      if (this.selectedLoan()?.id === loan.id) {
-        this.selectedLoan.set(null);
-      }
+      this.pageError.set('');
+      this.loanService.deleteCascade(loan.id).subscribe({
+        next: () => {
+          if (this.selectedLoan()?.id === loan.id) {
+            this.selectedLoan.set(null);
+          }
+        },
+        error: (err) => this.pageError.set(apiErrorMessage(err, 'No se pudo eliminar el préstamo')),
+      });
     }
     this.showDeleteConfirm.set(false);
     this.loanToDelete.set(null);

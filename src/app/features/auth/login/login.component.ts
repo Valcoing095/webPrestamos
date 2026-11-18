@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { apiErrorMessage } from '../../../core/api/api-error';
 
 @Component({
   selector: 'app-login',
@@ -37,7 +38,7 @@ import { AuthService } from '../../../core/services/auth.service';
           </ol>
         </div>
 
-        <p class="relative text-xs text-indigo-200/50">Tus datos se guardan localmente en este dispositivo.</p>
+        <p class="relative text-xs text-indigo-200/50">Tus datos se guardan de forma segura en tu cuenta.</p>
       </aside>
 
       <!-- Formulario -->
@@ -110,14 +111,21 @@ export class LoginComponent {
 
   onSubmit(): void {
     this.error.set('');
-    this.loading.set(true);
-    try {
-      this.authService.login(this.email.trim(), this.password);
-      this.router.navigate(['/dashboard']);
-    } catch (err: any) {
-      this.error.set(err.message || 'No fue posible iniciar sesión');
-    } finally {
-      this.loading.set(false);
+    if (!this.email.trim() || !this.password) {
+      this.error.set('Ingresa tu correo y contraseña');
+      return;
     }
+
+    this.loading.set(true);
+    this.authService.login(this.email.trim(), this.password).subscribe({
+      next: () => {
+        this.loading.set(false);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(err, 'No fue posible iniciar sesión'));
+      },
+    });
   }
 }

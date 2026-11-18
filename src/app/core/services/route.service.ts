@@ -1,66 +1,36 @@
-import { Injectable, computed, Signal } from '@angular/core';
-import { DataService } from './data.service';
-import { StorageService } from './storage.service';
-import { Route } from '../models';
+import { Injectable, Injector, inject } from '@angular/core';
+import { Observable, tap } from 'rxjs';
+import { ApiDataService } from './api-data.service';
+import { LenderService } from './lender.service';
+import { Route, RouteInput } from '../models';
 
 @Injectable({
   providedIn: 'root',
 })
-export class RouteService extends DataService<Route> {
-  constructor(storageService: StorageService) {
-    super('routes', storageService);
+export class RouteService extends ApiDataService<Route, RouteInput> {
+  protected readonly path = '/routes';
+  private injector = inject(Injector);
+
+  // El backend sincroniza ruta <-> prestamista: se recarga el lado opuesto
+  private syncLenders = () => this.injector.get(LenderService).load().subscribe();
+
+  override create(data: RouteInput): Observable<Route> {
+    return super.create(data).pipe(tap(this.syncLenders));
   }
 
-  create(data: Partial<Route>): Route {
-    const route = new Route(data);
-
-    if (!route.isValid()) {
-      throw new Error(route.validate().join(', '));
-    }
-
-    return this.add(route.toJSON() as Route);
+  override update(id: string, data: Partial<RouteInput>): Observable<Route> {
+    return super.update(id, data).pipe(tap(this.syncLenders));
   }
 
-  updateRoute(id: string, data: Partial<Route>): Route | null {
-    const existing = this.getById(id);
-    if (!existing) return null;
-
-    const route = new Route(existing);
-    route.update(data);
-
-    if (!route.isValid()) {
-      throw new Error(route.validate().join(', '));
-    }
-
-    return this.update(id, route.toJSON() as Route);
+  override delete(id: string): Observable<void> {
+    return super.delete(id).pipe(tap(this.syncLenders));
   }
 
-  getByUserId(userId: string): Route[] {
-    return this.filter((r) => r.userId === userId);
+  getActiveRoutes(): Route[] {
+    return this.filter((r) => r.isActive);
   }
 
-  getRoutesSignal(userId: string): Signal<Route[]> {
-    return computed(() => {
-      const allRoutes = this.getDataSignal()();
-      return allRoutes.filter((r) => r.userId === userId);
-    });
-  }
-
-  getActiveRoutes(userId: string): Route[] {
-    return this.getByUserId(userId).filter((r) => r.isActive);
-  }
-
-  findByName(userId: string, name: string): Route[] {
-    return this.getByUserId(userId).filter((r) =>
-      r.name.toLowerCase().includes(name.toLowerCase()),
-    );
-  }
-
-  deleteWithUserId(id: string, userId: string): boolean {
-    const item = this.getById(id);
-    if (item && item.userId === userId) {
-      return this.delete(id);
-    }
-    return false;
+  findByName(name: string): Route[] {
+    return this.filter((r) => r.name.toLowerCase().includes(name.toLowerCase()));
   }
 }

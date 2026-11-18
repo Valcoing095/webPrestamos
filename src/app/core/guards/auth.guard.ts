@@ -10,8 +10,7 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
-  router.navigate(['/login']);
-  return false;
+  return router.createUrlTree(['/login']);
 };
 
 export const loginGuard: CanActivateFn = () => {
@@ -22,6 +21,17 @@ export const loginGuard: CanActivateFn = () => {
     return true;
   }
 
-  router.navigate(['/dashboard']);
-  return false;
+  return router.createUrlTree(['/dashboard']);
+};
+
+/** Solo administradores (el backend también lo exige con 403) */
+export const adminGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  if (authService.isAdmin()) {
+    return true;
+  }
+
+  return router.createUrlTree(['/dashboard']);
 };

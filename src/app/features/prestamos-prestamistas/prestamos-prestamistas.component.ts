@@ -1,13 +1,13 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LoanService, LoanCalculator } from '../../core/services/loan.service';
+import { LoanService, LoanCalculator, toLoanPayload } from '../../core/services/loan.service';
 import { PersonService } from '../../core/services/person.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { LenderService } from '../../core/services/lender.service';
 import { RouteService } from '../../core/services/route.service';
-import { AuthService } from '../../core/services/auth.service';
-import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models';
+import { Loan, PaymentFrequency } from '../../core/models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-prestamos-prestamistas',
@@ -24,6 +24,10 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
           <i class="bi bi-plus-lg me-1"></i> Nuevo Préstamo
         </button>
       </div>
+
+      @if (pageError()) {
+        <div class="alert alert-danger mb-3" role="alert">{{ pageError() }}</div>
+      }
 
       <!-- Filter by Lender/Route -->
       <div class="card border-0 shadow-sm mb-4">
@@ -144,7 +148,7 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
               } @empty {
                 <tr>
                   <td colspan="9" class="text-center py-4 text-muted">
-                    No hay préstamos registrados
+                    {{ loanService.loading() ? 'Cargando préstamos…' : 'No hay préstamos registrados' }}
                   </td>
                 </tr>
               }
@@ -222,11 +226,14 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
                   <textarea class="form-control form-control-sm" [(ngModel)]="form.notes" rows="2"></textarea>
                 </div>
               </div>
+              @if (formError()) {
+                <div class="alert alert-danger py-2 small mt-3" role="alert">{{ formError() }}</div>
+              }
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary btn-sm" (click)="closeModal()">Cancelar</button>
-              <button type="button" class="btn btn-primary btn-sm" (click)="saveLoan()">
-                {{ editingLoan() ? 'Actualizar' : 'Guardar' }}
+              <button type="button" class="btn btn-primary btn-sm" (click)="saveLoan()" [disabled]="saving()">
+                {{ saving() ? 'Guardando…' : (editingLoan() ? 'Actualizar' : 'Guardar') }}
               </button>
             </div>
           </div>
@@ -262,10 +269,13 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
                 <label class="form-label small">Notas</label>
                 <textarea class="form-control form-control-sm" [(ngModel)]="paymentForm.notes" rows="2"></textarea>
               </div>
+              @if (paymentError()) {
+                <div class="alert alert-danger py-2 small" role="alert">{{ paymentError() }}</div>
+              }
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary btn-sm" (click)="showPaymentModal.set(false)">Cancelar</button>
-              <button type="button" class="btn btn-success btn-sm" (click)="savePayment()">Registrar Pago</button>
+              <button type="button" class="btn btn-success btn-sm" (click)="savePayment()" [disabled]="saving()">{{ saving() ? 'Guardando…' : 'Registrar Pago' }}</button>
             </div>
           </div>
         </div>
@@ -298,14 +308,17 @@ import { Loan, Person, PaymentFrequency, Lender, Route } from '../../core/models
   `]
 })
 export class PrestamosPrestamistasComponent implements OnInit {
-  private loanService = inject(LoanService);
+  loanService = inject(LoanService);
   private personService = inject(PersonService);
   private paymentService = inject(PaymentService);
   private lenderService = inject(LenderService);
   private routeService = inject(RouteService);
-  private authService = inject(AuthService);
 
   showModal = signal(false);
+  saving = signal(false);
+  formError = signal('');
+  paymentError = signal('');
+  pageError = signal('');
   showPaymentModal = signal(false);
   showDeleteConfirm = signal(false);
   editingLoan = signal<Loan | null>(null);
@@ -334,17 +347,9 @@ export class PrestamosPrestamistasComponent implements OnInit {
     notes: ''
   };
 
-  lenders = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    return this.lenderService.getByUserId(userId);
-  });
+  lenders = this.lenderService.getDataSignal();
 
-  routes = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    return this.routeService.getByUserId(userId);
-  });
+  routes = this.routeService.getDataSignal();
 
   filteredRoutes = computed(() => {
     if (!this.selectedLenderId) return this.routes();
@@ -364,17 +369,11 @@ export class PrestamosPrestamistasComponent implements OnInit {
     return this.routes();
   });
 
-  persons = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    return this.personService.getByUserId(userId);
-  });
+  persons = this.personService.getDataSignal();
 
-  loans = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    return this.loanService.getLenderLoans(userId);
-  });
+  loans = computed(() =>
+    this.loanService.getDataSignal()().filter(l => l.loanType === 'lender' && !!l.lenderId),
+  );
 
   filteredLoans = computed(() => {
     let result = this.loans();
@@ -403,14 +402,13 @@ export class PrestamosPrestamistasComponent implements OnInit {
       return { totalLoaned: 0, totalCollected: 0, totalPending: 0, activeCount: 0 };
     }
     const loans = this.loans().filter(l => l.lenderId === this.selectedLenderId);
-    const payments = loans.flatMap(loan => 
-      this.paymentService.getByLoanId(loan.id).map(p => ({ loanId: loan.id, amount: p.amount }))
-    );
-    return LoanCalculator.getSummary(loans, payments);
+    return LoanCalculator.getSummary(loans);
   });
 
   ngOnInit() {
-    this.loanService.setPaymentService(this.paymentService);
+    // Refresca desde el backend (las listas ya se cargan al iniciar sesión)
+    this.loanService.load().subscribe();
+    this.paymentService.load().subscribe();
   }
 
   getLenderName(lenderId: string | null): string {
@@ -460,6 +458,7 @@ export class PrestamosPrestamistasComponent implements OnInit {
   openModal() {
     this.editingLoan.set(null);
     this.resetForm();
+    this.formError.set('');
     this.showModal.set(true);
   }
 
@@ -476,6 +475,7 @@ export class PrestamosPrestamistasComponent implements OnInit {
       paymentFrequency: loan.paymentFrequency,
       notes: loan.notes
     };
+    this.formError.set('');
     this.showModal.set(true);
   }
 
@@ -501,31 +501,42 @@ export class PrestamosPrestamistasComponent implements OnInit {
   }
 
   saveLoan() {
-    const userId = this.authService.getUserId();
-    if (!userId) return;
+    if (this.saving()) return;
+    this.formError.set('');
 
     if (!this.form.lenderId) {
-      alert('Debe seleccionar un prestamista');
+      this.formError.set('Debe seleccionar un prestamista');
+      return;
+    }
+    if (!this.form.personId) {
+      this.formError.set('Selecciona un cliente');
+      return;
+    }
+    if (!(Number(this.form.amount) > 0)) {
+      this.formError.set('El monto debe ser mayor a 0');
       return;
     }
 
-    try {
-      if (this.editingLoan()) {
-        this.loanService.updateLoan(this.editingLoan()!.id, {
-          ...this.form,
-          loanType: 'lender'
-        });
-      } else {
-        this.loanService.create({
-          ...this.form,
-          userId,
-          loanType: 'lender'
-        });
-      }
-      this.closeModal();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al guardar');
-    }
+    const payload = {
+      ...toLoanPayload(this.form),
+      lenderId: this.form.lenderId,
+      routeId: this.form.routeId || null,
+      loanType: 'lender' as const,
+    };
+    const editing = this.editingLoan();
+    const request = editing ? this.loanService.update(editing.id, payload) : this.loanService.create(payload);
+
+    this.saving.set(true);
+    request.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeModal();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.formError.set(apiErrorMessage(err, 'No se pudo guardar el préstamo'));
+      },
+    });
   }
 
   registerPayment(loan: Loan) {
@@ -535,28 +546,42 @@ export class PrestamosPrestamistasComponent implements OnInit {
       date: new Date().toISOString().split('T')[0],
       notes: ''
     };
+    this.paymentError.set('');
     this.showPaymentModal.set(true);
   }
 
   savePayment() {
     const loan = this.paymentLoan();
-    if (!loan || this.paymentForm.amount <= 0) {
-      alert('Ingrese un monto valido');
+    if (this.saving()) return;
+    this.paymentError.set('');
+    if (!loan || !(Number(this.paymentForm.amount) > 0)) {
+      this.paymentError.set('Ingrese un monto válido');
+      return;
+    }
+    if (Number(this.paymentForm.amount) > this.getPending(loan) + 0.001) {
+      this.paymentError.set('El monto excede el saldo pendiente del préstamo');
       return;
     }
 
-    try {
-      this.paymentService.create({
+    this.saving.set(true);
+    this.paymentService
+      .create({
         loanId: loan.id,
-        amount: this.paymentForm.amount,
+        amount: Number(this.paymentForm.amount),
         date: this.paymentForm.date,
-        notes: this.paymentForm.notes
+        notes: this.paymentForm.notes,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.showPaymentModal.set(false);
+          this.paymentLoan.set(null);
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.paymentError.set(apiErrorMessage(err, 'No se pudo registrar el pago'));
+        },
       });
-      this.showPaymentModal.set(false);
-      this.paymentLoan.set(null);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Error al guardar');
-    }
   }
 
   confirmDelete(loan: Loan) {
@@ -567,7 +592,10 @@ export class PrestamosPrestamistasComponent implements OnInit {
   deleteLoan() {
     const loan = this.loanToDelete();
     if (loan) {
-      this.loanService.deleteCascade(loan.id);
+      this.pageError.set('');
+      this.loanService.deleteCascade(loan.id).subscribe({
+        error: (err) => this.pageError.set(apiErrorMessage(err, 'No se pudo eliminar el préstamo')),
+      });
     }
     this.showDeleteConfirm.set(false);
     this.loanToDelete.set(null);

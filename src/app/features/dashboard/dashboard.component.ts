@@ -1,10 +1,10 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { LoanService, PaymentService, LenderService, PersonService } from '../../core/services';
+import { LoanService, PaymentService, LenderService, PersonService, ReportService } from '../../core/services';
 import { MoraService } from '../../core/services/mora.service';
 import { AuthService } from '../../core/services/auth.service';
-import { Loan, Payment, Lender, Person } from '../../core/models';
+import { DashboardSummary } from '../../core/models';
 
 interface QuickAction {
   path: string;
@@ -268,12 +268,16 @@ export class DashboardComponent implements OnInit {
   private personService = inject(PersonService);
   private authService = inject(AuthService);
   private moraService = inject(MoraService);
+  private reportService = inject(ReportService);
 
-  loans = signal<Loan[]>([]);
-  payments = signal<Payment[]>([]);
-  lenders = signal<Lender[]>([]);
-  persons = signal<Person[]>([]);
-  userId: string = '';
+  loans = this.loanService.getDataSignal();
+  payments = this.paymentService.getDataSignal();
+  lenders = this.lenderService.getDataSignal();
+  persons = this.personService.getDataSignal();
+
+  /** Resumen general calculado por el backend (GET /reports/dashboard) */
+  summary = signal<DashboardSummary | null>(null);
+  summaryError = signal(false);
 
   userName = computed(() => this.authService.currentUser()?.name?.split(' ')[0] ?? '');
   greeting = computed(() => {
@@ -288,13 +292,11 @@ export class DashboardComponent implements OnInit {
     { path: '/liquidacion', title: 'Liquidar ruta', description: 'Cierra cuentas con prestamistas', icon: '▤', chip: 'bg-violet-50 text-violet-600' },
   ];
 
-  // Gestión propia
+  // Gestión propia (desglose local sobre `paidAmount` que mantiene el backend)
   ownLoans = computed(() => this.loans().filter(l => l.loanType === 'own' || !l.lenderId));
   ownLoansCount = computed(() => this.ownLoans().length);
   ownCapital = computed(() => this.ownLoans().reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0));
-  ownCollected = computed(() =>
-    this.ownLoans().reduce((sum, l) => sum + this.paymentService.getTotalPaidForLoan(l.id), 0),
-  );
+  ownCollected = computed(() => this.ownLoans().reduce((sum, l) => sum + (l.paidAmount || 0), 0));
   ownCollectPercentage = computed(() => {
     const total = this.ownCapital();
     return total > 0 ? Math.round((this.ownCollected() / total) * 100) : 0;
@@ -305,34 +307,26 @@ export class DashboardComponent implements OnInit {
   lenderLoansCount = computed(() => this.lenderLoans().length);
   lendersCount = computed(() => this.lenders().filter(l => l.isActive).length);
   lenderCapital = computed(() => this.lenderLoans().reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0));
-  lenderCollected = computed(() =>
-    this.lenderLoans().reduce((sum, l) => sum + this.paymentService.getTotalPaidForLoan(l.id), 0),
-  );
+  lenderCollected = computed(() => this.lenderLoans().reduce((sum, l) => sum + (l.paidAmount || 0), 0));
   lenderCollectPercentage = computed(() => {
     const total = this.lenderCapital();
     return total > 0 ? Math.round((this.lenderCollected() / total) * 100) : 0;
   });
 
-  // Generales
-  totalLoaned = computed(() => this.ownCapital() + this.lenderCapital());
-  totalCollected = computed(() => this.ownCollected() + this.lenderCollected());
-  pendingCapital = computed(() => this.totalLoaned() - this.totalCollected());
-  collectPercentage = computed(() => {
-    const total = this.totalLoaned();
-    return total > 0 ? Math.round((this.totalCollected() / total) * 100) : 0;
-  });
+  // Generales: vienen del endpoint /reports/dashboard
+  totalLoaned = computed(() => this.summary()?.totalLoaned ?? 0);
+  totalCollected = computed(() => this.summary()?.totalCollected ?? 0);
+  pendingCapital = computed(() => this.summary()?.pendingCapital ?? 0);
+  collectPercentage = computed(() => Math.round(this.summary()?.collectPercentage ?? 0));
 
-  activeLoansCount = computed(() => this.loans().filter(l => l.status === 'active').length);
-  completedLoansCount = computed(() => this.loans().filter(l => l.status === 'completed').length);
-  totalLoansCount = computed(() => this.loans().length);
+  activeLoansCount = computed(() => this.summary()?.activeCount ?? 0);
+  completedLoansCount = computed(() => this.summary()?.completedCount ?? 0);
+  totalLoansCount = computed(() => this.summary()?.totalLoansCount ?? 0);
 
-  // Mora calculada por fechas (el estado guardado nunca se actualizaba solo)
-  moraAlerts = computed(() => {
-    this.loans(); // dependencia: recalcular cuando cargan los datos
-    return this.moraService.getAlerts(this.authService.getUserId() || '');
-  });
-  overdueAlerts = computed(() => this.moraAlerts().filter(a => !a.isDueToday));
-  overdueLoansCount = computed(() => this.overdueAlerts().length);
+  // Mora calculada en el backend (/collections/alerts)
+  moraAlerts = this.moraService.alerts;
+  overdueAlerts = this.moraService.overdueAlerts;
+  overdueLoansCount = computed(() => this.summary()?.overdueCount ?? this.moraService.overdueCount());
   moraAmount = computed(() => this.overdueAlerts().reduce((sum, a) => sum + a.pendingAmount, 0));
 
   recentPayments = computed(() =>
@@ -342,15 +336,16 @@ export class DashboardComponent implements OnInit {
   );
 
   ngOnInit() {
-    this.userId = this.authService.getUserId() || '';
-    this.loadData();
+    this.loadSummary();
+    this.moraService.load().subscribe();
   }
 
-  loadData() {
-    this.loans.set(this.loanService.getByUserId(this.userId));
-    this.payments.set(this.paymentService.getByUserId(this.userId));
-    this.lenders.set(this.lenderService.getByUserId(this.userId));
-    this.persons.set(this.personService.getByUserId(this.userId));
+  loadSummary() {
+    this.summaryError.set(false);
+    this.reportService.dashboard().subscribe({
+      next: (d) => this.summary.set(d),
+      error: () => this.summaryError.set(true),
+    });
   }
 
   getPersonName(personId: string): string {

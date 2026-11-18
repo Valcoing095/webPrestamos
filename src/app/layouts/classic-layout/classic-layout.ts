@@ -13,6 +13,7 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { MoraService } from '../../core/services/mora.service';
 import { LoanCalculator } from '../../core/services/loan.service';
+import { DataSyncService } from '../../core/services/data-sync.service';
 
 interface NavItem {
   path: string;
@@ -35,14 +36,15 @@ export class ClassicLayout {
   private route = inject(ActivatedRoute);
   private auth = inject(AuthService);
   private moraService = inject(MoraService);
+  dataSync = inject(DataSyncService);
 
   sidebarOpen = signal(false);
   userMenuOpen = signal(false);
   alertsOpen = signal(false);
 
   /** Alertas de mora en vivo (se recalculan al registrar pagos) */
-  moraAlerts = computed(() => this.moraService.getAlerts(this.auth.getUserId() || ''));
-  overdueCount = computed(() => this.moraAlerts().filter(a => !a.isDueToday).length);
+  moraAlerts = this.moraService.alerts;
+  overdueCount = this.moraService.overdueCount;
   topAlerts = computed(() => this.moraAlerts().slice(0, 5));
 
   pageTitle = signal('Panel');
@@ -50,13 +52,22 @@ export class ClassicLayout {
   pageSection = signal('');
 
   user = this.auth.currentUser;
+  isAdmin = this.auth.isAdmin;
+  roleLabel = computed(() => (this.user()?.role === 'admin' ? 'Administrador' : 'Operador'));
   initials = computed(() => {
     const name = this.user()?.name?.trim() || '?';
     return name.split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
   });
 
-  /** Navegación organizada por el flujo de trabajo del negocio */
-  sections: NavSection[] = [
+  /** Navegación organizada por el flujo de trabajo del negocio (Administración solo para admins) */
+  sections = computed<NavSection[]>(() => (this.isAdmin() ? [...this.baseSections, this.adminSection] : this.baseSections));
+
+  private adminSection: NavSection = {
+    label: 'Administración',
+    items: [{ path: '/usuarios', label: 'Usuarios', icon: 'featherShield' }],
+  };
+
+  private baseSections: NavSection[] = [
     {
       label: 'Panel',
       items: [

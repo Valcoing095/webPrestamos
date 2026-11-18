@@ -1,60 +1,51 @@
-import { Injectable, signal, computed, Signal } from '@angular/core';
-import { DataService } from './data.service';
-import { StorageService } from './storage.service';
-import { Loan, PaymentFrequency, LoanType } from '../models';
+import { Injectable, Injector, inject } from '@angular/core';
+import { Observable, map, tap } from 'rxjs';
+import { ApiDataService } from './api-data.service';
+import { MoraService } from './mora.service';
 import { PaymentService } from './payment.service';
+import { Loan, LoanInput, LoanSchedule, PaymentFrequency, TrackingNote } from '../models';
+import { Page } from '../api/page';
 
 @Injectable({
   providedIn: 'root',
 })
-export class LoanService extends DataService<Loan> {
-  private paymentServiceSignal = signal<PaymentService | null>(null);
+export class LoanService extends ApiDataService<Loan, LoanInput> {
+  protected readonly path = '/loans';
+  private injector = inject(Injector);
 
-  constructor(storageService: StorageService) {
-    super('loans', storageService);
+  // La mora depende de los préstamos: tras cualquier cambio se vuelve a pedir al backend
+  private syncMora = () => this.injector.get(MoraService).load().subscribe();
+
+  override create(data: LoanInput): Observable<Loan> {
+    return super.create(data).pipe(tap(this.syncMora));
   }
 
-  setPaymentService(paymentService: PaymentService): void {
-    this.paymentServiceSignal.set(paymentService);
+  override update(id: string, data: Partial<LoanInput>): Observable<Loan> {
+    return super.update(id, data).pipe(tap(this.syncMora));
   }
 
-  private getPaymentService(): PaymentService | null {
-    return this.paymentServiceSignal();
+  /** Alias con el nombre que usaban los componentes */
+  updateLoan(id: string, data: Partial<LoanInput>): Observable<Loan> {
+    return this.update(id, data);
   }
 
-  create(data: Partial<Loan>): Loan {
-    const loan = new Loan(data);
-
-    if (!loan.isValid()) {
-      throw new Error(loan.validate().join(', '));
-    }
-
-    return this.add(loan.toJSON() as Loan);
+  /** Elimina el préstamo (el backend borra también sus notas) */
+  override delete(id: string): Observable<void> {
+    return super.delete(id).pipe(
+      tap(() => {
+        this.injector.get(PaymentService).load().subscribe();
+        this.syncMora();
+      }),
+    );
   }
 
-  updateLoan(id: string, data: Partial<Loan>): Loan | null {
-    const existing = this.getById(id);
-    if (!existing) return null;
-
-    const loan = new Loan(existing);
-    loan.update(data);
-
-    if (!loan.isValid()) {
-      throw new Error(loan.validate().join(', '));
-    }
-
-    return this.update(id, loan.toJSON() as Loan);
+  deleteCascade(loanId: string): Observable<void> {
+    return this.delete(loanId);
   }
 
-  getByUserId(userId: string): Loan[] {
-    return this.filter((l) => l.userId === userId);
-  }
-
-  getLoansSignal(userId: string): Signal<Loan[]> {
-    return computed(() => {
-      const allLoans = this.getDataSignal()();
-      return allLoans.filter((l) => l.userId === userId);
-    });
+  /** Reemplaza un préstamo de la caché (p. ej. tras registrar un pago) */
+  patchCache(loan: Loan): void {
+    this.dataSignal.update((items) => items.map((l) => (l.id === loan.id ? loan : l)));
   }
 
   getByPersonId(personId: string): Loan[] {
@@ -69,95 +60,89 @@ export class LoanService extends DataService<Loan> {
     return this.filter((l) => l.routeId === routeId);
   }
 
-  // Prestamos de gestion propia (sin prestamista asignado)
-  getOwnLoans(userId: string): Loan[] {
-    return this.filter((l) => l.userId === userId && (l.loanType === 'own' || !l.lenderId));
+  // Préstamos de gestión propia (sin prestamista asignado)
+  getOwnLoans(): Loan[] {
+    return this.filter((l) => l.loanType === 'own' || !l.lenderId);
   }
 
-  getOwnLoansSignal(userId: string): Signal<Loan[]> {
-    return computed(() => {
-      const allLoans = this.getDataSignal()();
-      return allLoans.filter((l) => l.userId === userId && (l.loanType === 'own' || !l.lenderId));
-    });
+  // Préstamos gestionados por prestamistas
+  getLenderLoans(): Loan[] {
+    return this.filter((l) => l.loanType === 'lender' && !!l.lenderId);
   }
 
-  // Prestamos gestionados por prestamistas
-  getLenderLoans(userId: string): Loan[] {
-    return this.filter((l) => l.userId === userId && l.loanType === 'lender' && !!l.lenderId);
+  getActiveOwnLoans(): Loan[] {
+    return this.getOwnLoans().filter((l) => l.status !== 'completed');
   }
 
-  getLenderLoansSignal(userId: string): Signal<Loan[]> {
-    return computed(() => {
-      const allLoans = this.getDataSignal()();
-      return allLoans.filter((l) => l.userId === userId && l.loanType === 'lender' && !!l.lenderId);
-    });
-  }
-
-  // Prestamos activos de gestion propia
-  getActiveOwnLoans(userId: string): Loan[] {
-    const paymentService = this.getPaymentService();
-    return this.getOwnLoans(userId).filter((loan) => {
-      const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
-      const total = loan.totalToCollect || loan.amount;
-      return totalPaid < total;
-    });
-  }
-
-  // Prestamos activos por prestamista
   getActiveLoansByLender(lenderId: string): Loan[] {
-    const paymentService = this.getPaymentService();
-    return this.getByLenderId(lenderId).filter((loan) => {
-      const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
-      const total = loan.totalToCollect || loan.amount;
-      return totalPaid < total;
-    });
+    return this.getByLenderId(lenderId).filter((l) => l.status !== 'completed');
   }
 
-  getActiveLoans(userId: string): Loan[] {
-    const paymentService = this.getPaymentService();
-    return this.getByUserId(userId).filter((loan) => {
-      const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
-      const total = loan.totalToCollect || loan.amount;
-      return totalPaid < total;
-    });
+  getActiveLoans(): Loan[] {
+    return this.filter((l) => l.status !== 'completed');
   }
 
-  getActiveLoansSignal(userId: string, paymentService: PaymentService): Signal<Loan[]> {
-    return computed(() => {
-      return this.getByUserId(userId).filter((loan) => {
-        const totalPaid = paymentService.getTotalPaidForLoan(loan.id);
-        const total = loan.totalToCollect || loan.amount;
-        return totalPaid < total;
-      });
-    });
+  getCompletedLoans(): Loan[] {
+    return this.filter((l) => l.status === 'completed');
   }
 
-  getCompletedLoans(userId: string): Loan[] {
-    const paymentService = this.getPaymentService();
-    return this.getByUserId(userId).filter((loan) => {
-      const totalPaid = paymentService ? paymentService.getTotalPaidForLoan(loan.id) : 0;
-      const total = loan.totalToCollect || loan.amount;
-      return totalPaid >= total;
-    });
+  getOverdueLoans(): Loan[] {
+    return this.filter((l) => l.status === 'overdue');
   }
 
-  getOverdueLoans(userId: string): Loan[] {
-    return this.getByUserId(userId).filter((loan) => {
-      const l = new Loan(loan);
-      return l.isOverdue();
-    });
+  // --- Notas de seguimiento (recurso /loans/:id/notes) ---
+
+  getNotes(loanId: string): Observable<TrackingNote[]> {
+    return this.http.get<TrackingNote[]>(`${this.url}/${loanId}/notes`);
   }
 
-  deleteCascade(loanId: string): boolean {
-    const paymentService = this.getPaymentService();
-    if (paymentService) {
-      paymentService.deleteByLoanId(loanId);
-    }
-    return this.delete(loanId);
+  addNote(loanId: string, text: string): Observable<TrackingNote> {
+    return this.http.post<TrackingNote>(`${this.url}/${loanId}/notes`, { text });
+  }
+
+  deleteNote(loanId: string, noteId: string): Observable<void> {
+    return this.http.delete<unknown>(`${this.url}/${loanId}/notes/${noteId}`).pipe(map(() => undefined));
+  }
+
+  // --- Calendario de cuotas (calculado en el backend) ---
+
+  getSchedule(loanId: string): Observable<LoanSchedule> {
+    return this.http.get<LoanSchedule>(`${this.url}/${loanId}/schedule`);
+  }
+
+  /** Listado paginado (la caché usa /all; esto sirve para pantallas con filtros del servidor) */
+  getPage(query: Record<string, string | number> = {}): Observable<Page<Loan>> {
+    return this.http.get<Page<Loan>>(this.url, { params: query });
   }
 }
 
+/**
+ * Normaliza los datos de un formulario de préstamo al contrato del backend:
+ * `totalToCollect` solo se envía si es > 0 (el backend lo calcula con el interés si falta).
+ */
+export function toLoanPayload(form: {
+  personId: string;
+  date: string;
+  amount: number;
+  interest: number;
+  totalToCollect: number;
+  paymentFrequency: PaymentFrequency;
+  notes: string;
+}): LoanInput {
+  const payload: LoanInput = {
+    personId: form.personId,
+    date: form.date,
+    amount: Number(form.amount),
+    interest: Number(form.interest) || 0,
+    paymentFrequency: form.paymentFrequency,
+    notes: form.notes ?? '',
+  };
+  if (Number(form.totalToCollect) > 0) payload.totalToCollect = Number(form.totalToCollect);
+  return payload;
+}
+
 export class LoanCalculator {
+  /** Solo para previsualizar en formularios; el backend calcula el valor definitivo */
   static calculateTotalWithInterest(amount: number, interest: number, totalToCollect?: number): number {
     if (totalToCollect && totalToCollect > 0) {
       return totalToCollect;
@@ -166,28 +151,6 @@ export class LoanCalculator {
       return amount;
     }
     return amount + (amount * interest) / 100;
-  }
-
-  static calculateMonthlyPayment(amount: number, interest: number, months: number): number {
-    if (!interest || interest === 0 || months === 0) {
-      return amount / months;
-    }
-    const total = this.calculateTotalWithInterest(amount, interest);
-    return total / months;
-  }
-
-  static getPaymentsPerFrequency(frequency: PaymentFrequency): number {
-    switch (frequency) {
-      case 'daily':
-        return 30;
-      case 'weekly':
-        return 4;
-      case 'biweekly':
-        return 2;
-      case 'monthly':
-      default:
-        return 1;
-    }
   }
 
   static getFrequencyLabel(frequency: PaymentFrequency): string {
@@ -204,73 +167,13 @@ export class LoanCalculator {
     }
   }
 
-  static calculatePaymentByFrequency(
-    amount: number,
-    interest: number,
-    frequency: PaymentFrequency,
-    termMonths: number = 1,
-  ): number {
-    const total = this.calculateTotalWithInterest(amount, interest);
-    if (!interest || interest === 0) {
-      return total / (termMonths * this.getPaymentsPerFrequency(frequency));
-    }
-    const paymentsPerMonth = this.getPaymentsPerFrequency(frequency);
-    const totalPayments = termMonths * paymentsPerMonth;
-    return total / totalPayments;
-  }
-
-  static calculateNextPaymentDate(
-    loanDate: string,
-    frequency: PaymentFrequency,
-    paymentsCount: number,
-  ): string {
-    const date = new Date(loanDate);
-    switch (frequency) {
-      case 'daily':
-        date.setDate(date.getDate() + paymentsCount);
-        break;
-      case 'weekly':
-        date.setDate(date.getDate() + paymentsCount * 7);
-        break;
-      case 'biweekly':
-        date.setDate(date.getDate() + paymentsCount * 15);
-        break;
-      case 'monthly':
-      default:
-        date.setMonth(date.getMonth() + paymentsCount);
-        break;
-    }
-    return date.toISOString().split('T')[0];
-  }
-
-  static calculateAutoInterest(amount: number, frequency: PaymentFrequency): number {
-    switch (frequency) {
-      case 'daily':
-        return 3;
-      case 'biweekly':
-        return 10;
-      case 'monthly':
-      default:
-        return 5;
-    }
-  }
-
-  static getSummary(loans: Loan[], payments: { loanId: string; amount: number }[]) {
+  /** Resumen de una lista de préstamos usando el `paidAmount` que mantiene el backend */
+  static getSummary(loans: Loan[]) {
     const totalLoaned = loans.reduce((sum, l) => sum + l.amount, 0);
     const totalToCollect = loans.reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0);
-    const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
-    const totalPending = totalToCollect - totalCollected;
-
-    const paidByLoan = new Map<string, number>();
-    payments.forEach((p) => {
-      paidByLoan.set(p.loanId, (paidByLoan.get(p.loanId) || 0) + p.amount);
-    });
-
-    const activeCount = loans.filter((loan) => {
-      const totalPaid = paidByLoan.get(loan.id) || 0;
-      const total = loan.totalToCollect || loan.amount;
-      return totalPaid < total;
-    }).length;
+    const totalCollected = loans.reduce((sum, l) => sum + (l.paidAmount || 0), 0);
+    const totalPending = Math.max(0, totalToCollect - totalCollected);
+    const activeCount = loans.filter((l) => l.status !== 'completed').length;
 
     return { totalLoaned, totalCollected, totalPending, activeCount };
   }

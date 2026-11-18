@@ -1,25 +1,12 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoanService, LoanCalculator } from '../../core/services/loan.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { LenderService } from '../../core/services/lender.service';
-import { RouteService } from '../../core/services/route.service';
-import { AuthService } from '../../core/services/auth.service';
-import { Lender } from '../../core/models';
-
-interface LenderSettlement {
-  lender: Lender;
-  routeName: string;
-  totalLoaned: number;
-  totalToCollect: number;
-  totalCollected: number;
-  totalPending: number;
-  activeLoans: number;
-  completedLoans: number;
-  commission: number;
-  netForOwner: number;
-}
+import { SettlementService } from '../../core/services/settlement.service';
+import { LenderSettlement, SettlementPreview } from '../../core/models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-liquidacion',
@@ -46,11 +33,18 @@ interface LenderSettlement {
             [(ngModel)]="endDate"
             style="min-width: 130px; max-width: 160px; flex: 1 1 auto;"
           >
-          <button class="btn btn-sm btn-outline-primary" (click)="applyDateFilter()">
-            Filtrar
+          <button class="btn btn-sm btn-outline-primary" (click)="applyDateFilter()" [disabled]="loading()">
+            {{ loading() ? 'Calculando…' : 'Filtrar' }}
           </button>
         </div>
       </div>
+
+      @if (error()) {
+        <div class="alert alert-danger mb-3" role="alert">{{ error() }}</div>
+      }
+      @if (success()) {
+        <div class="alert alert-success mb-3" role="status">{{ success() }}</div>
+      }
 
       <!-- Global Summary -->
       <div class="row g-2 g-md-3 mb-4">
@@ -94,14 +88,14 @@ interface LenderSettlement {
           <h5 class="mb-0">Detalle por Prestamista</h5>
         </div>
         <div class="card-body p-0">
-          @for (settlement of settlements(); track settlement.lender.id) {
+          @for (settlement of settlements(); track settlement.lenderId) {
             <div class="border-bottom p-3 p-md-4">
               <div class="row g-3 align-items-start">
                 <div class="col-12 col-md-3">
-                  <h6 class="h5-md mb-1">{{ settlement.lender.name }}</h6>
+                  <h6 class="h5-md mb-1">{{ settlement.lenderName }}</h6>
                   <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ settlement.routeName }}</span>
                   <p class="text-muted mb-0 small mt-1">
-                    Comisión: {{ settlement.lender.commissionPercentage }}%
+                    Comisión: {{ settlement.commissionPercentage }}%
                   </p>
                 </div>
                 <div class="col-12 col-md-9">
@@ -134,13 +128,18 @@ interface LenderSettlement {
                   <div class="mt-2">
                     <span class="badge bg-primary me-1" style="font-size: 0.7rem;">{{ settlement.activeLoans }} activos</span>
                     <span class="badge bg-success" style="font-size: 0.7rem;">{{ settlement.completedLoans }} completados</span>
+                    <button class="btn btn-sm btn-outline-primary ms-2" style="font-size: 0.7rem;"
+                            [disabled]="closingId() === settlement.lenderId"
+                            (click)="closeSettlement(settlement)">
+                      {{ closingId() === settlement.lenderId ? 'Cerrando…' : 'Cerrar liquidación' }}
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           } @empty {
             <div class="text-center py-5 text-muted">
-              <p>No hay prestamistas con prestamos asignados</p>
+              <p>{{ loading() ? 'Calculando liquidación…' : 'No hay prestamistas con movimientos en el periodo' }}</p>
             </div>
           }
         </div>
@@ -201,103 +200,88 @@ interface LenderSettlement {
     .table td { font-size: 0.9rem; }
   `]
 })
-export class LiquidacionComponent {
+export class LiquidacionComponent implements OnInit {
   private loanService = inject(LoanService);
   private paymentService = inject(PaymentService);
   private lenderService = inject(LenderService);
-  private routeService = inject(RouteService);
-  private authService = inject(AuthService);
+  private settlementService = inject(SettlementService);
 
   startDate = this.getFirstDayOfMonth();
-  endDate = new Date().toISOString().split('T')[0];
-  dateFilterApplied = signal(false);
+  endDate = this.today();
   selectedLenderForDetails = '';
 
-  lenders = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
-    return this.lenderService.getByUserId(userId);
-  });
+  preview = signal<SettlementPreview | null>(null);
+  loading = signal(false);
+  closingId = signal<string | null>(null);
+  error = signal('');
+  success = signal('');
 
-  settlements = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
+  lenders = this.lenderService.getDataSignal();
 
-    return this.lenders().map(lender => {
-      const loans = this.loanService.getByLenderId(lender.id);
-      
-      let filteredPayments: { loanId: string; amount: number; date: string }[] = [];
-      loans.forEach(loan => {
-        const payments = this.paymentService.getByLoanId(loan.id);
-        payments.forEach(p => {
-          if (this.isInDateRange(p.date)) {
-            filteredPayments.push({ loanId: loan.id, amount: p.amount, date: p.date });
-          }
-        });
-      });
-
-      const totalLoaned = loans.reduce((sum, l) => sum + l.amount, 0);
-      const totalToCollect = loans.reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0);
-      const totalCollected = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
-      
-      // Calcular pendiente total (no solo del periodo)
-      const allPayments = loans.flatMap(loan => this.paymentService.getByLoanId(loan.id));
-      const totalPaidAllTime = allPayments.reduce((sum, p) => sum + p.amount, 0);
-      const totalPending = Math.max(0, totalToCollect - totalPaidAllTime);
-
-      const commission = (totalCollected * lender.commissionPercentage) / 100;
-      const netForOwner = totalCollected - commission;
-
-      // Contar prestamos activos y completados
-      const paidByLoan = new Map<string, number>();
-      allPayments.forEach(p => {
-        paidByLoan.set(p.loanId, (paidByLoan.get(p.loanId) || 0) + p.amount);
-      });
-
-      let activeLoans = 0;
-      let completedLoans = 0;
-      loans.forEach(loan => {
-        const paid = paidByLoan.get(loan.id) || 0;
-        const total = loan.totalToCollect || loan.amount;
-        if (paid >= total) {
-          completedLoans++;
-        } else {
-          activeLoans++;
-        }
-      });
-
-      const route = lender.routeId ? this.routeService.getById(lender.routeId) : null;
-
-      return {
-        lender,
-        routeName: route?.name || 'Sin ruta',
-        totalLoaned,
-        totalToCollect,
-        totalCollected,
-        totalPending,
-        activeLoans,
-        completedLoans,
-        commission,
-        netForOwner
-      } as LenderSettlement;
-    }).filter(s => s.totalLoaned > 0 || s.totalCollected > 0);
-  });
+  /** Liquidación por prestamista: la calcula el backend (GET /settlements/preview) */
+  settlements = computed<LenderSettlement[]>(() => this.preview()?.settlements ?? []);
 
   globalStats = computed(() => {
-    const settlements = this.settlements();
+    const g = this.preview()?.global;
     return {
-      totalLoaned: settlements.reduce((sum, s) => sum + s.totalLoaned, 0),
-      totalCollected: settlements.reduce((sum, s) => sum + s.totalCollected, 0),
-      totalPending: settlements.reduce((sum, s) => sum + s.totalPending, 0),
-      totalCommission: settlements.reduce((sum, s) => sum + s.commission, 0),
-      netForOwner: settlements.reduce((sum, s) => sum + s.netForOwner, 0)
+      totalLoaned: g?.totalLoaned ?? 0,
+      totalCollected: g?.totalCollected ?? 0,
+      totalPending: g?.totalPending ?? 0,
+      totalCommission: g?.totalCommission ?? 0,
+      netForOwner: g?.netForOwner ?? 0,
     };
   });
 
-  movements = computed(() => {
-    const userId = this.authService.getUserId();
-    if (!userId) return [];
+  ngOnInit(): void {
+    this.lenderService.load().subscribe();
+    this.loanService.load().subscribe();
+    this.paymentService.load().subscribe();
+    this.loadPreview();
+  }
 
+  loadPreview(): void {
+    this.error.set('');
+    if (!this.startDate || !this.endDate) {
+      this.error.set('Selecciona la fecha de inicio y la de fin');
+      return;
+    }
+    if (this.startDate > this.endDate) {
+      this.error.set('La fecha de inicio no puede ser posterior a la fecha de fin');
+      return;
+    }
+
+    this.loading.set(true);
+    this.settlementService.preview(this.startDate, this.endDate).subscribe({
+      next: (res) => {
+        this.preview.set(res);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set(apiErrorMessage(err, 'No se pudo calcular la liquidación'));
+      },
+    });
+  }
+
+  closeSettlement(settlement: LenderSettlement): void {
+    this.error.set('');
+    this.success.set('');
+    this.closingId.set(settlement.lenderId);
+    this.settlementService.close(settlement.lenderId, this.startDate, this.endDate).subscribe({
+      next: () => {
+        this.closingId.set(null);
+        this.success.set(`Liquidación de ${settlement.lenderName} cerrada correctamente`);
+      },
+      error: (err) => {
+        this.closingId.set(null);
+        this.error.set(apiErrorMessage(err, 'No se pudo cerrar la liquidación'));
+      },
+    });
+  }
+
+  movements = computed(() => {
+    // Se recalcula al aplicar el filtro de fechas (cada consulta actualiza `preview`)
+    this.preview();
     const result: Array<{
       id: string;
       date: string;
@@ -308,7 +292,7 @@ export class LiquidacionComponent {
       amount: number;
     }> = [];
 
-    const loans = this.loanService.getLenderLoans(userId);
+    const loans = this.loanService.getDataSignal()().filter(l => l.loanType === 'lender' && !!l.lenderId);
 
     loans.forEach(loan => {
       const lender = loan.lenderId ? this.lenderService.getById(loan.lenderId) : null;
@@ -352,21 +336,29 @@ export class LiquidacionComponent {
     return result.slice(0, 50); // Limitar a 50 movimientos
   });
 
-  private getFirstDayOfMonth(): string {
-    const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+  private toISODate(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   }
 
+  private today(): string {
+    return this.toISODate(new Date());
+  }
+
+  private getFirstDayOfMonth(): string {
+    const date = new Date();
+    return this.toISODate(new Date(date.getFullYear(), date.getMonth(), 1));
+  }
+
+  /** Fechas YYYY-MM-DD: la comparación de strings equivale a la de fechas (rango inclusivo) */
   private isInDateRange(dateStr: string): boolean {
-    const date = new Date(dateStr);
-    const start = new Date(this.startDate);
-    const end = new Date(this.endDate);
-    end.setHours(23, 59, 59, 999);
-    return date >= start && date <= end;
+    const d = dateStr.split('T')[0];
+    return d >= this.startDate && d <= this.endDate;
   }
 
   applyDateFilter() {
-    this.dateFilterApplied.set(!this.dateFilterApplied());
+    this.success.set('');
+    this.loadPreview();
   }
 
   formatCurrency(amount: number): string {

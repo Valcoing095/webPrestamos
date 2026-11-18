@@ -4,3 +4,5 @@ export * from './loan.model';
 export * from './payment.model';
 export * from './lender.model';
 export * from './route.model';
+export * from './user.model';
+export * from './report.model';

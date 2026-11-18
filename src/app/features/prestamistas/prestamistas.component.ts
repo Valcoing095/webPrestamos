@@ -2,8 +2,8 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { LenderService, RouteService } from '../../core/services';
-import { AuthService } from '../../core/services/auth.service';
-import { Lender, Route } from '../../core/models';
+import { Lender } from '../../core/models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-prestamistas',
@@ -115,7 +115,7 @@ import { Lender, Route } from '../../core/models';
                 </td>
               </tr>
               <tr *ngIf="filteredLenders().length === 0">
-                <td colspan="8" class="text-center text-muted py-4">No hay prestamistas registrados</td>
+                <td colspan="8" class="text-center text-muted py-4">{{ lenderService.loading() ? 'Cargando prestamistas…' : 'No hay prestamistas registrados' }}</td>
               </tr>
             </tbody>
           </table>
@@ -253,9 +253,9 @@ import { Lender, Route } from '../../core/models';
                 type="button" 
                 class="btn btn-primary btn-sm" 
                 (click)="saveLender()"
-                [disabled]="!form || form.invalid"
+                [disabled]="!form || form.invalid || saving()"
               >
-                Guardar
+                {{ saving() ? 'Guardando…' : 'Guardar' }}
               </button>
             </div>
           </div>
@@ -318,13 +318,13 @@ import { Lender, Route } from '../../core/models';
   `]
 })
 export class PrestamistasComponent implements OnInit {
-  private lenderService = inject(LenderService);
+  lenderService = inject(LenderService);
   private routeService = inject(RouteService);
-  private authService = inject(AuthService);
   private formBuilder = inject(FormBuilder);
 
-  lenders = signal<Lender[]>([]);
-  routes = signal<Route[]>([]);
+  lenders = this.lenderService.getDataSignal();
+  routes = this.routeService.getDataSignal();
+  saving = signal(false);
   searchTerm = signal('');
   showModal = signal(false);
   showDeleteModal = signal(false);
@@ -332,7 +332,6 @@ export class PrestamistasComponent implements OnInit {
   lenderToDelete = signal<Lender | null>(null);
   form: FormGroup | null = null;
   toast = signal<{ message: string; type: 'success' | 'error' } | null>(null);
-  userId: string = '';
 
   filteredLenders = computed(() => {
     const term = this.searchTerm().toLowerCase();
@@ -344,7 +343,7 @@ export class PrestamistasComponent implements OnInit {
   });
 
   availableRoutes = computed(() => {
-    return this.routes().filter(r => r.userId === this.userId && r.isActive);
+    return this.routes().filter(r => r.isActive);
   });
 
   totalCapital = computed(() => {
@@ -360,13 +359,9 @@ export class PrestamistasComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.userId = this.authService.getUserId() || '';
-    this.loadData();
-  }
-
-  loadData() {
-    this.lenders.set(this.lenderService.getByUserId(this.userId));
-    this.routes.set(this.routeService.getByUserId(this.userId));
+    // Los datos se cargan al iniciar sesión (DataSyncService); aquí se refrescan por si cambiaron
+    this.lenderService.load().subscribe();
+    this.routeService.load().subscribe();
   }
 
   getRouteName(routeId: string | null): string {
@@ -415,31 +410,26 @@ export class PrestamistasComponent implements OnInit {
   }
 
   saveLender() {
-    if (!this.form || this.form.invalid) return;
+    if (!this.form || this.form.invalid || this.saving()) return;
 
     const formValue = this.form.value;
-    
-    try {
-      if (this.editingLender()) {
-        const lender = this.editingLender()!;
-        lender.update(formValue);
-        this.lenderService.update(lender.id, formValue);
-        this.showToast('Prestamista actualizado correctamente', 'success');
-      } else {
-        const newLender = new Lender({
-          ...formValue,
-          userId: this.userId,
-          createdAt: new Date().toISOString()
-        });
-        this.lenderService.create(newLender);
-        this.showToast('Prestamista creado correctamente', 'success');
-      }
+    const editing = this.editingLender();
+    const request = editing
+      ? this.lenderService.update(editing.id, formValue)
+      : this.lenderService.create(formValue);
 
-      this.loadData();
-      this.closeModal();
-    } catch (error: any) {
-      this.showToast(error.message || 'Error al guardar', 'error');
-    }
+    this.saving.set(true);
+    request.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.showToast(editing ? 'Prestamista actualizado correctamente' : 'Prestamista creado correctamente', 'success');
+        this.closeModal();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.showToast(apiErrorMessage(err, 'Error al guardar el prestamista'), 'error');
+      },
+    });
   }
 
   confirmDelete(lender: Lender) {
@@ -449,15 +439,11 @@ export class PrestamistasComponent implements OnInit {
 
   deleteLender() {
     const lender = this.lenderToDelete();
-    if (lender) {
-      try {
-        this.lenderService.delete(lender.id);
-        this.showToast('Prestamista eliminado correctamente', 'success');
-        this.loadData();
-      } catch (error: any) {
-        this.showToast(error.message || 'Error al eliminar', 'error');
-      }
-    }
+    if (!lender) return;
+    this.lenderService.delete(lender.id).subscribe({
+      next: () => this.showToast('Prestamista eliminado correctamente', 'success'),
+      error: (err) => this.showToast(apiErrorMessage(err, 'Error al eliminar el prestamista'), 'error'),
+    });
     this.closeDeleteModal();
   }
 

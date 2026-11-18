@@ -2,8 +2,8 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouteService, LenderService } from '../../core/services';
-import { AuthService } from '../../core/services/auth.service';
-import { Route, Lender } from '../../core/models';
+import { Route } from '../../core/models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-rutas',
@@ -103,7 +103,7 @@ import { Route, Lender } from '../../core/models';
                 </td>
               </tr>
               <tr *ngIf="filteredRoutes().length === 0">
-                <td colspan="6" class="text-center text-muted py-4">No hay rutas registradas</td>
+                <td colspan="6" class="text-center text-muted py-4">{{ routeService.loading() ? 'Cargando rutas…' : 'No hay rutas registradas' }}</td>
               </tr>
             </tbody>
           </table>
@@ -194,9 +194,9 @@ import { Route, Lender } from '../../core/models';
                 type="button" 
                 class="btn btn-primary btn-sm" 
                 (click)="saveRoute()"
-                [disabled]="!form || form.invalid"
+                [disabled]="!form || form.invalid || saving()"
               >
-                Guardar
+                {{ saving() ? 'Guardando…' : 'Guardar' }}
               </button>
             </div>
           </div>
@@ -259,13 +259,13 @@ import { Route, Lender } from '../../core/models';
   `]
 })
 export class RutasComponent implements OnInit {
-  private routeService = inject(RouteService);
+  routeService = inject(RouteService);
   private lenderService = inject(LenderService);
-  private authService = inject(AuthService);
   private formBuilder = inject(FormBuilder);
 
-  routes = signal<Route[]>([]);
-  lenders = signal<Lender[]>([]);
+  routes = this.routeService.getDataSignal();
+  lenders = this.lenderService.getDataSignal();
+  saving = signal(false);
   searchTerm = signal('');
   showModal = signal(false);
   showDeleteModal = signal(false);
@@ -273,7 +273,6 @@ export class RutasComponent implements OnInit {
   routeToDelete = signal<Route | null>(null);
   form: FormGroup | null = null;
   toast = signal<{ message: string; type: 'success' | 'error' } | null>(null);
-  userId: string = '';
 
   filteredRoutes = computed(() => {
     const term = this.searchTerm().toLowerCase();
@@ -285,7 +284,7 @@ export class RutasComponent implements OnInit {
   });
 
   availableLenders = computed(() => {
-    return this.lenders().filter(l => l.userId === this.userId && l.isActive);
+    return this.lenders().filter(l => l.isActive);
   });
 
   assignedRoutesCount = computed(() => {
@@ -297,13 +296,9 @@ export class RutasComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.userId = this.authService.getUserId() || '';
-    this.loadData();
-  }
-
-  loadData() {
-    this.routes.set(this.routeService.getByUserId(this.userId));
-    this.lenders.set(this.lenderService.getByUserId(this.userId));
+    // Los datos se cargan al iniciar sesión (DataSyncService); aquí se refrescan por si cambiaron
+    this.routeService.load().subscribe();
+    this.lenderService.load().subscribe();
   }
 
   getLenderName(lenderId: string | null): string {
@@ -337,31 +332,26 @@ export class RutasComponent implements OnInit {
   }
 
   saveRoute() {
-    if (!this.form || this.form.invalid) return;
+    if (!this.form || this.form.invalid || this.saving()) return;
 
     const formValue = this.form.value;
-    
-    try {
-      if (this.editingRoute()) {
-        const route = this.editingRoute()!;
-        route.update(formValue);
-        this.routeService.update(route.id, formValue);
-        this.showToast('Ruta actualizada correctamente', 'success');
-      } else {
-        const newRoute = new Route({
-          ...formValue,
-          userId: this.userId,
-          createdAt: new Date().toISOString()
-        });
-        this.routeService.create(newRoute);
-        this.showToast('Ruta creada correctamente', 'success');
-      }
+    const editing = this.editingRoute();
+    const request = editing
+      ? this.routeService.update(editing.id, formValue)
+      : this.routeService.create(formValue);
 
-      this.loadData();
-      this.closeModal();
-    } catch (error: any) {
-      this.showToast(error.message || 'Error al guardar', 'error');
-    }
+    this.saving.set(true);
+    request.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.showToast(editing ? 'Ruta actualizada correctamente' : 'Ruta creada correctamente', 'success');
+        this.closeModal();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.showToast(apiErrorMessage(err, 'Error al guardar la ruta'), 'error');
+      },
+    });
   }
 
   confirmDelete(route: Route) {
@@ -371,15 +361,11 @@ export class RutasComponent implements OnInit {
 
   deleteRoute() {
     const route = this.routeToDelete();
-    if (route) {
-      try {
-        this.routeService.delete(route.id);
-        this.showToast('Ruta eliminada correctamente', 'success');
-        this.loadData();
-      } catch (error: any) {
-        this.showToast(error.message || 'Error al eliminar', 'error');
-      }
-    }
+    if (!route) return;
+    this.routeService.delete(route.id).subscribe({
+      next: () => this.showToast('Ruta eliminada correctamente', 'success'),
+      error: (err) => this.showToast(apiErrorMessage(err, 'Error al eliminar la ruta'), 'error'),
+    });
     this.closeDeleteModal();
   }
 

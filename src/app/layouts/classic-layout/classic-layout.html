@@ -27,7 +27,7 @@
 
     <!-- Navegación por flujo -->
     <nav class="sidebar-scroll flex-1 overflow-y-auto px-3 py-4">
-      @for (section of sections; track section.label) {
+      @for (section of sections(); track section.label) {
         <p class="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-200/50 first:pt-1">
           {{ section.label }}
         </p>
@@ -61,7 +61,7 @@
           Registrar pago
         </a>
       </div>
-      <p class="mt-4 text-center text-[11px] text-indigo-200/40">PrestaFlow · Tus datos se guardan en este dispositivo</p>
+      <p class="mt-4 text-center text-[11px] text-indigo-200/40">PrestaFlow · Sesión: {{ roleLabel() }}</p>
     </div>
   </aside>
 
@@ -160,7 +160,7 @@
             </span>
             <span class="hidden max-w-36 text-left leading-tight md:block">
               <span class="block truncate text-sm font-semibold text-slate-800">{{ user()?.name || 'Usuario' }}</span>
-              <span class="block truncate text-xs text-slate-400">{{ user()?.email }}</span>
+              <span class="block truncate text-xs text-slate-400">{{ roleLabel() }}</span>
             </span>
           </button>
 
@@ -169,6 +169,7 @@
               <div class="border-b border-slate-100 px-3 py-2.5">
                 <p class="truncate text-sm font-semibold text-slate-800">{{ user()?.name || 'Usuario' }}</p>
                 <p class="truncate text-xs text-slate-400">{{ user()?.email }}</p>
+                <p class="mt-1 text-[11px] font-semibold uppercase tracking-wide text-brand-600">{{ roleLabel() }}</p>
               </div>
               <a routerLink="/dashboard" class="mt-1 flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50" role="menuitem">
                 <ng-icon name="featherHome" class="text-base"></ng-icon> Ir al panel
@@ -181,6 +182,20 @@
         </div>
       </div>
     </header>
+
+    @if (dataSync.loading()) {
+      <div class="h-0.5 w-full overflow-hidden bg-brand-100" role="progressbar" aria-label="Cargando datos">
+        <div class="h-full w-1/3 animate-pulse bg-brand-500"></div>
+      </div>
+    }
+    @if (dataSync.error()) {
+      <div class="mx-auto mt-4 w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        <div class="alert alert-danger flex items-center justify-between gap-3" role="alert">
+          <span>No se pudieron cargar tus datos. Verifica la conexión con el servidor.</span>
+          <button class="btn btn-sm" (click)="dataSync.loadAll()">Reintentar</button>
+        </div>
+      </div>
+    }
 
     <main class="mx-auto w-full max-w-[1440px] flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
       <router-outlet></router-outlet>

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, loginGuard } from './core/guards/auth.guard';
+import { adminGuard, authGuard, loginGuard } from './core/guards/auth.guard';
 
 /**
  * Flujo de la app:
@@ -97,6 +97,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/seguimiento/seguimiento.component').then(m => m.SeguimientoComponent),
         title: 'Seguimiento · PrestaFlow',
         data: { title: 'Seguimiento', subtitle: 'Notas y avance de cada préstamo', section: 'Análisis' },
+      },
+      // Administración (solo admin)
+      {
+        path: 'usuarios',
+        loadComponent: () => import('./features/usuarios/usuarios.component').then(m => m.UsuariosComponent),
+        canActivate: [adminGuard],
+        title: 'Usuarios · PrestaFlow',
+        data: { title: 'Usuarios', subtitle: 'Roles y acceso', section: 'Administración' },
       },
       // Alias heredados
       { path: 'personas', redirectTo: 'clientes', pathMatch: 'full' },

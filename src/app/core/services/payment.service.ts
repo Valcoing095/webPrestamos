@@ -1,55 +1,43 @@
-import { Injectable, computed, Signal } from '@angular/core';
-import { DataService } from './data.service';
-import { StorageService } from './storage.service';
-import { Payment } from '../models';
+import { Injectable, Injector, inject } from '@angular/core';
+import { Observable, tap } from 'rxjs';
+import { ApiDataService } from './api-data.service';
+import { LoanService } from './loan.service';
+import { MoraService } from './mora.service';
+import { Payment, PaymentInput } from '../models';
 
 @Injectable({
   providedIn: 'root',
 })
-export class PaymentService extends DataService<Payment> {
-  constructor(storageService: StorageService) {
-    super('payments', storageService);
+export class PaymentService extends ApiDataService<Payment, PaymentInput> {
+  protected readonly path = '/payments';
+  private injector = inject(Injector);
+
+  // Registrar/borrar un pago cambia paidAmount/status del préstamo y la mora
+  private syncDependents = () => {
+    this.injector.get(LoanService).load().subscribe();
+    this.injector.get(MoraService).load().subscribe();
+  };
+
+  override create(data: PaymentInput): Observable<Payment> {
+    return super.create(data).pipe(tap(this.syncDependents));
   }
 
-  create(data: Partial<Payment>): Payment {
-    const payment = new Payment(data);
-
-    if (!payment.isValid()) {
-      throw new Error(payment.validate().join(', '));
-    }
-
-    return this.add(payment.toJSON() as Payment);
+  override delete(id: string): Observable<void> {
+    return super.delete(id).pipe(tap(this.syncDependents));
   }
 
-  getByUserId(userId: string): Payment[] {
-    return this.filter((p) => p.userId === userId);
-  }
-
-  getPaymentsSignal(userId: string): Signal<Payment[]> {
-    return computed(() => {
-      const allPayments = this.getDataSignal()();
-      return allPayments.filter((p) => p.userId === userId);
-    });
-  }
+  /** El backend no permite editar pagos (solo crear/eliminar) */
 
   getByLoanId(loanId: string): Payment[] {
     return this.filter((p) => p.loanId === loanId);
   }
 
+  /** Total abonado según el backend (`loan.paidAmount`) */
   getTotalPaidForLoan(loanId: string): number {
-    const payments = this.getByLoanId(loanId);
-    return payments.reduce((sum, p) => sum + p.amount, 0);
+    return this.injector.get(LoanService).getById(loanId)?.paidAmount ?? 0;
   }
 
-  getPaymentsByDateRange(userId: string, startDate: string, endDate: string): Payment[] {
-    return this.getByUserId(userId).filter((p) => {
-      const date = new Date(p.date);
-      return date >= new Date(startDate) && date <= new Date(endDate);
-    });
-  }
-
-  deleteByLoanId(loanId: string): void {
-    const payments = this.getByLoanId(loanId);
-    payments.forEach((p) => this.delete(p.id));
+  getPaymentsByDateRange(startDate: string, endDate: string): Payment[] {
+    return this.filter((p) => p.date >= startDate && p.date <= endDate);
   }
 }

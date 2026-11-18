@@ -1,103 +1,136 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, Injector, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { Observable, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { AuthTokens, Role, User } from '../models';
+import { Page } from '../api/page';
 import { StorageService } from './storage.service';
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-}
+export type { User };
+
+const ACCESS_KEY = 'accessToken';
+const REFRESH_KEY = 'refreshToken';
+const USER_KEY = 'user';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
+  private http = inject(HttpClient);
+  private storage = inject(StorageService);
+  private injector = inject(Injector);
+  private readonly authUrl = `${environment.apiUrl}/auth`;
+
   private currentUserSignal = signal<User | null>(null);
+  private accessTokenSignal = signal<string | null>(null);
 
   currentUser = this.currentUserSignal.asReadonly();
-  isAuthenticated = computed(() => this.currentUserSignal() !== null);
+  accessToken = this.accessTokenSignal.asReadonly();
+  isAuthenticated = computed(() => this.accessTokenSignal() !== null && this.currentUserSignal() !== null);
+  role = computed<Role | null>(() => this.currentUserSignal()?.role ?? null);
+  isAdmin = computed(() => this.role() === 'admin');
 
-  constructor(private storage: StorageService) {
-    this.loadUser();
+  /** Refresh en vuelo (single-flight): todas las peticiones 401 comparten la misma llamada */
+  private refreshInFlight$: Observable<AuthTokens> | null = null;
+
+  constructor() {
+    this.restoreSession();
   }
 
-  private loadUser(): void {
-    const userData = this.storage.get<User>('user');
-    if (userData) {
-      this.currentUserSignal.set(userData);
+  private restoreSession(): void {
+    // Los tokens viven en localStorage (aceptable para este proyecto)
+    const token = this.storage.get<string>(ACCESS_KEY);
+    const refresh = this.storage.get<string>(REFRESH_KEY);
+    const user = this.storage.get<User>(USER_KEY);
+    if (token && refresh && user) {
+      this.accessTokenSignal.set(token);
+      this.currentUserSignal.set(user);
+    } else {
+      this.clearSession();
     }
   }
 
-  private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  private saveSession(tokens: AuthTokens): void {
+    this.storage.set(ACCESS_KEY, tokens.accessToken);
+    this.storage.set(REFRESH_KEY, tokens.refreshToken);
+    this.storage.set(USER_KEY, tokens.user);
+    this.accessTokenSignal.set(tokens.accessToken);
+    this.currentUserSignal.set(tokens.user);
   }
 
-  private hashPassword(password: string): string {
-    let hash = 0;
-    for (let i = 0; i < password.length; i++) {
-      const char = password.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString(16);
-  }
-
-  register(name: string, email: string, password: string): User {
-    const usersKey = 'users';
-    const users = this.storage.get<any[]>(usersKey) || [];
-
-    const existingUser = users.find(u => u.email === email);
-    if (existingUser) {
-      throw new Error('El correo electronico ya esta registrado');
-    }
-
-    const user: User = {
-      id: this.generateId(),
-      name,
-      email,
-      createdAt: new Date().toISOString()
-    };
-
-    const userWithPassword = {
-      ...user,
-      password: this.hashPassword(password)
-    };
-
-    users.push(userWithPassword);
-    this.storage.set(usersKey, users);
-
-    return this.login(email, password);
-  }
-
-  login(email: string, password: string): User {
-    const usersKey = 'users';
-    const users = this.storage.get<any[]>(usersKey) || [];
-
-    const user = users.find(u => u.email === email);
-    if (!user) {
-      throw new Error('Credenciales incorrectas');
-    }
-
-    if (user.password !== this.hashPassword(password)) {
-      throw new Error('Credenciales incorrectas');
-    }
-
-    const userData: User = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      createdAt: user.createdAt
-    };
-
-    this.currentUserSignal.set(userData);
-    this.storage.set('user', userData);
-
-    return userData;
-  }
-
-  logout(): void {
+  private clearSession(): void {
+    this.storage.remove(ACCESS_KEY);
+    this.storage.remove(REFRESH_KEY);
+    this.storage.remove(USER_KEY);
+    this.accessTokenSignal.set(null);
     this.currentUserSignal.set(null);
-    this.storage.remove('user');
+  }
+
+  getRefreshToken(): string | null {
+    return this.storage.get<string>(REFRESH_KEY);
+  }
+
+  register(name: string, email: string, password: string): Observable<User> {
+    return this.http
+      .post<AuthTokens>(`${this.authUrl}/register`, { name, email, password })
+      .pipe(tap((t) => this.saveSession(t)), map((t) => t.user));
+  }
+
+  login(email: string, password: string): Observable<User> {
+    return this.http
+      .post<AuthTokens>(`${this.authUrl}/login`, { email, password })
+      .pipe(tap((t) => this.saveSession(t)), map((t) => t.user));
+  }
+
+  /** Renueva los tokens. El refresh rota: el anterior queda revocado tras usarse */
+  refresh(): Observable<AuthTokens> {
+    if (this.refreshInFlight$) return this.refreshInFlight$;
+
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      this.expireSession();
+      return throwError(() => new Error('Sin sesión'));
+    }
+
+    this.refreshInFlight$ = this.http.post<AuthTokens>(`${this.authUrl}/refresh`, { refreshToken }).pipe(
+      tap((t) => this.saveSession(t)),
+      catchError((err) => {
+        this.expireSession();
+        return throwError(() => err);
+      }),
+      finalize(() => (this.refreshInFlight$ = null)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    return this.refreshInFlight$;
+  }
+
+  /** Datos frescos del usuario actual (GET /auth/me) */
+  me(): Observable<User> {
+    return this.http.get<User>(`${this.authUrl}/me`).pipe(
+      tap((user) => {
+        this.storage.set(USER_KEY, user);
+        this.currentUserSignal.set(user);
+      }),
+    );
+  }
+
+  /** Cierra sesión: revoca el refresh en el backend (si se puede) y limpia el estado local */
+  logout(): void {
+    const refreshToken = this.getRefreshToken();
+    this.clearSession();
+    if (refreshToken) {
+      this.http.post(`${this.authUrl}/logout`, { refreshToken }).pipe(catchError(() => of(null))).subscribe();
+    }
+  }
+
+  /** Sesión vencida o refresh fallido: limpia y manda al login */
+  expireSession(): void {
+    const wasLoggedIn = this.currentUserSignal() !== null;
+    this.clearSession();
+    if (wasLoggedIn) {
+      this.injector.get(Router).navigate(['/login']);
+    }
   }
 
   getUser(): User | null {
@@ -106,5 +139,19 @@ export class AuthService {
 
   getUserId(): string | null {
     return this.currentUserSignal()?.id || null;
+  }
+
+  // --- Administración de usuarios (solo admin) ---
+
+  listUsers(query: Record<string, string | number> = {}): Observable<Page<User>> {
+    return this.http.get<Page<User>>(`${this.authUrl}/users`, { params: query });
+  }
+
+  updateUserRole(id: string, role: Role): Observable<User> {
+    return this.http.patch<User>(`${this.authUrl}/users/${id}/role`, { role });
+  }
+
+  updateUserStatus(id: string, isActive: boolean): Observable<User> {
+    return this.http.patch<User>(`${this.authUrl}/users/${id}/status`, { isActive });
   }
 }
