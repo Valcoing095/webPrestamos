@@ -1,8 +1,8 @@
 // PRODUCCION (ng build usa este archivo; en desarrollo lo reemplaza environment.development.ts).
-// Antes de compilar para produccion, cambiar apiUrl por la URL publica del gateway
-// (dominio del servidor back, con HTTPS y terminando en /api). Se hornea en el bundle:
-// cambiarla exige volver a compilar. Debe coincidir con un origen listado en CORS_ORIGINS del back.
+// apiUrl = URL publica del gateway desplegado en Render (HTTPS, terminando en /api).
+// Se hornea en el bundle: cambiarla exige volver a compilar (Vercel recompila en cada push).
+// El dominio del front en Vercel debe estar en CORS_ORIGINS del back (Render -> Environment).
 export const environment = {
   production: true,
-  apiUrl: 'https://api.tudominio.com/api',
+  apiUrl: 'https://backwebprestamos.onrender.com/api',
 };
