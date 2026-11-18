@@ -292,26 +292,21 @@ export class DashboardComponent implements OnInit {
     { path: '/liquidacion', title: 'Liquidar ruta', description: 'Cierra cuentas con prestamistas', icon: '▤', chip: 'bg-violet-50 text-violet-600' },
   ];
 
-  // Gestión propia (desglose local sobre `paidAmount` que mantiene el backend)
-  ownLoans = computed(() => this.loans().filter(l => l.loanType === 'own' || !l.lenderId));
-  ownLoansCount = computed(() => this.ownLoans().length);
-  ownCapital = computed(() => this.ownLoans().reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0));
-  ownCollected = computed(() => this.ownLoans().reduce((sum, l) => sum + (l.paidAmount || 0), 0));
-  ownCollectPercentage = computed(() => {
-    const total = this.ownCapital();
-    return total > 0 ? Math.round((this.ownCollected() / total) * 100) : 0;
-  });
+  // Gestión propia y prestamistas: desglose calculado en el backend (`bySegment`)
+  private own = computed(() => this.summary()?.bySegment.own);
+  private lender = computed(() => this.summary()?.bySegment.lender);
+
+  ownLoansCount = computed(() => this.own()?.count ?? 0);
+  ownCapital = computed(() => this.own()?.totalToCollect ?? 0);
+  ownCollected = computed(() => this.own()?.collected ?? 0);
+  ownCollectPercentage = computed(() => Math.round(this.own()?.collectPercentage ?? 0));
 
   // Prestamistas
-  lenderLoans = computed(() => this.loans().filter(l => l.loanType === 'lender' && l.lenderId));
-  lenderLoansCount = computed(() => this.lenderLoans().length);
+  lenderLoansCount = computed(() => this.lender()?.count ?? 0);
   lendersCount = computed(() => this.lenders().filter(l => l.isActive).length);
-  lenderCapital = computed(() => this.lenderLoans().reduce((sum, l) => sum + (l.totalToCollect || l.amount), 0));
-  lenderCollected = computed(() => this.lenderLoans().reduce((sum, l) => sum + (l.paidAmount || 0), 0));
-  lenderCollectPercentage = computed(() => {
-    const total = this.lenderCapital();
-    return total > 0 ? Math.round((this.lenderCollected() / total) * 100) : 0;
-  });
+  lenderCapital = computed(() => this.lender()?.totalToCollect ?? 0);
+  lenderCollected = computed(() => this.lender()?.collected ?? 0);
+  lenderCollectPercentage = computed(() => Math.round(this.lender()?.collectPercentage ?? 0));
 
   // Generales: vienen del endpoint /reports/dashboard
   totalLoaned = computed(() => this.summary()?.totalLoaned ?? 0);

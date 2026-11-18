@@ -15,6 +15,18 @@ export interface MoraAlertDto {
   isDueToday: boolean;
 }
 
+/** Resumen de un segmento de cartera (propia o de prestamistas) */
+export interface SegmentSummary {
+  count: number;
+  lent: number;
+  totalToCollect: number;
+  collected: number;
+  pending: number;
+  collectPercentage: number;
+  overdueCount: number;
+  overdueAmount: number;
+}
+
 export interface DashboardSummary {
   totalLoaned: number;
   totalToCollect: number;
@@ -25,12 +37,24 @@ export interface DashboardSummary {
   completedCount: number;
   overdueCount: number;
   collectPercentage: number;
+  bySegment: { own: SegmentSummary; lender: SegmentSummary };
+}
+
+/** Filtros de GET /reports/follow-up (`from`/`to` aplican a la fecha del préstamo, inclusivos) */
+export interface FollowUpFilters {
+  from?: string;
+  to?: string;
+  routeId?: string;
+  lenderId?: string;
 }
 
 export interface FollowUpItem {
   loanId: string;
   personId: string;
   lenderId: string | null;
+  routeId: string | null;
+  /** Fecha del préstamo (YYYY-MM-DD) */
+  date: string;
   amount: number;
   totalToCollect: number;
   paid: number;

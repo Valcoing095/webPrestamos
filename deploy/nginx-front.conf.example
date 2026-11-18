@@ -1,0 +1,61 @@
+# Servidor FRONT (Angular estatico). Copiar a /etc/nginx/sites-available/prestaflow-front.
+# Reemplazar app.tudominio.com y la ruta del build.
+#
+# Build: `ng build` (configuracion production por defecto) genera dist/prestamos-angular/browser.
+# Copiar ese contenido a /var/www/prestaflow/browser (ej.: rsync -a --delete dist/prestamos-angular/browser/ servidor:/var/www/prestaflow/browser/).
+# Certificado: sudo certbot --nginx -d app.tudominio.com
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name app.tudominio.com;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name app.tudominio.com;
+
+    ssl_certificate     /etc/letsencrypt/live/app.tudominio.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/app.tudominio.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    root /var/www/prestaflow/browser;
+    index index.html;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    gzip on;
+    gzip_vary on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # Assets con hash (main-XXXX.js, styles-XXXX.css, chunks): cache largo e inmutable.
+    location ~* \.(?:js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp)$ {
+        try_files $uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    # index.html jamas en cache: asi un nuevo despliegue se ve de inmediato.
+    location = /index.html {
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+
+    # Fallback SPA: cualquier ruta del router de Angular devuelve index.html.
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache, must-revalidate";
+    }
+}

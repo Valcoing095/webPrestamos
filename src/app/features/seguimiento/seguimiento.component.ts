@@ -3,6 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
+import { Subscription } from 'rxjs';
 import { LoanService, LoanCalculator } from '../../core/services/loan.service';
 import { PersonService } from '../../core/services/person.service';
 import { LenderService } from '../../core/services/lender.service';
@@ -35,15 +36,15 @@ import { apiErrorMessage } from '../../core/api/api-error';
           <div class="row g-2 g-md-3 align-items-end">
             <div class="col-12 col-sm-6 col-md-3">
               <label for="filter-start" class="form-label small">Fecha Inicio</label>
-              <input type="date" id="filter-start" [(ngModel)]="filterStartDate" name="startDate" class="form-control form-control-sm" />
+              <input type="date" id="filter-start" [ngModel]="filterStartDate" (ngModelChange)="filterStartDate = $event; loadFollowUp()" name="startDate" class="form-control form-control-sm" />
             </div>
             <div class="col-12 col-sm-6 col-md-3">
               <label for="filter-end" class="form-label small">Fecha Fin</label>
-              <input type="date" id="filter-end" [(ngModel)]="filterEndDate" name="endDate" class="form-control form-control-sm" />
+              <input type="date" id="filter-end" [ngModel]="filterEndDate" (ngModelChange)="filterEndDate = $event; loadFollowUp()" name="endDate" class="form-control form-control-sm" />
             </div>
             <div class="col-12 col-sm-6 col-md-3">
               <label for="filter-lender" class="form-label small">Prestamista</label>
-              <select id="filter-lender" [(ngModel)]="filterLenderId" name="lenderId" class="form-select form-select-sm">
+              <select id="filter-lender" [ngModel]="filterLenderId" (ngModelChange)="filterLenderId = $event; loadFollowUp()" name="lenderId" class="form-select form-select-sm">
                 <option value="">Todos</option>
                 @for (lender of lenders(); track lender.id) {
                   <option [value]="lender.id">{{ lender.name }}</option>
@@ -52,7 +53,7 @@ import { apiErrorMessage } from '../../core/api/api-error';
             </div>
             <div class="col-12 col-sm-6 col-md-3">
               <label for="filter-route" class="form-label small">Ruta</label>
-              <select id="filter-route" [(ngModel)]="filterRouteId" name="routeId" class="form-select form-select-sm">
+              <select id="filter-route" [ngModel]="filterRouteId" (ngModelChange)="filterRouteId = $event; loadFollowUp()" name="routeId" class="form-select form-select-sm">
                 <option value="">Todas</option>
                 @for (route of routes(); track route.id) {
                   <option [value]="route.id">{{ route.name }}</option>
@@ -225,7 +226,7 @@ import { apiErrorMessage } from '../../core/api/api-error';
                 </tr>
               </thead>
               <tbody>
-                @for (item of filteredFollowUp(); track item.loanId) {
+                @for (item of followUp(); track item.loanId) {
                   <tr>
                     <td class="px-3 fw-medium small">{{ personName(item.personId) }}</td>
                     <td><span class="badge" [class]="statusClass(item.status)">{{ statusLabel(item.status) }}</span></td>
@@ -317,6 +318,7 @@ export class SeguimientoComponent implements OnInit {
   dashboard = signal<DashboardSummary | null>(null);
   followUp = signal<FollowUpItem[]>([]);
   loading = signal(false);
+  private followUpSub?: Subscription;
   error = signal('');
 
   // Notas de seguimiento (recurso /loans/:id/notes)
@@ -352,38 +354,40 @@ export class SeguimientoComponent implements OnInit {
   }
 
   loadReports(): void {
-    this.loading.set(true);
     this.error.set('');
     this.reportService.dashboard().subscribe({
       next: (d) => this.dashboard.set(d),
       error: (err) => this.error.set(apiErrorMessage(err, 'No se pudo cargar el resumen')),
     });
-    this.reportService.followUp().subscribe({
-      next: (items) => {
-        this.followUp.set(items);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.error.set(apiErrorMessage(err, 'No se pudo cargar el seguimiento'));
-      },
-    });
+    this.loadFollowUp();
+  }
+
+  /** Pide el seguimiento con los filtros activos; el filtrado ocurre en el backend */
+  loadFollowUp(): void {
+    this.loading.set(true);
+    this.followUpSub?.unsubscribe();
+    this.followUpSub = this.reportService
+      .followUp({
+        from: this.filterStartDate,
+        to: this.filterEndDate,
+        routeId: this.filterRouteId,
+        lenderId: this.filterLenderId,
+      })
+      .subscribe({
+        next: (items) => {
+          this.error.set('');
+          this.followUp.set(items);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.error.set(apiErrorMessage(err, 'No se pudo cargar el seguimiento'));
+        },
+      });
   }
 
   lenders = this.lenderService.getDataSignal();
   routes = this.routeService.getDataSignal();
-
-  /** Seguimiento filtrado por prestamista, ruta y fecha del préstamo */
-  filteredFollowUp = computed(() => {
-    return this.followUp().filter((item) => {
-      const loan = this.loanService.getById(item.loanId);
-      if (this.filterLenderId && item.lenderId !== this.filterLenderId) return false;
-      if (this.filterRouteId && loan?.routeId !== this.filterRouteId) return false;
-      if (this.filterStartDate && loan && loan.date < this.filterStartDate) return false;
-      if (this.filterEndDate && loan && loan.date > this.filterEndDate) return false;
-      return true;
-    });
-  });
 
   // KPIs (mora y porcentaje cobrado vienen del backend)
   totalMora = computed(() => this.moraService.overdueAlerts().reduce((sum, a) => sum + a.pendingAmount, 0));
@@ -391,14 +395,14 @@ export class SeguimientoComponent implements OnInit {
   collectPercentage = computed(() => Math.round(this.dashboard()?.collectPercentage ?? 0));
 
   clientesActivos = computed(
-    () => new Set(this.filteredFollowUp().filter((i) => i.status !== 'completed').map((i) => i.personId)).size,
+    () => new Set(this.followUp().filter((i) => i.status !== 'completed').map((i) => i.personId)).size,
   );
 
   clientesMorosos = computed(() => new Set(this.moraService.overdueAlerts().map((a) => a.personId)).size);
 
   // Chart Data
   lenderChartData = computed((): ChartData<'bar'> => {
-    const items = this.filteredFollowUp();
+    const items = this.followUp();
     const lenderData = this.lenders().map((lender) => ({
       name: lender.name,
       amount: items.filter((i) => i.lenderId === lender.id).reduce((sum, i) => sum + i.amount, 0),
@@ -415,7 +419,7 @@ export class SeguimientoComponent implements OnInit {
   });
 
   private itemsByRoute(routeId: string): FollowUpItem[] {
-    return this.filteredFollowUp().filter((i) => this.loanService.getById(i.loanId)?.routeId === routeId);
+    return this.followUp().filter((i) => i.routeId === routeId);
   }
 
   routeChartData = computed((): ChartData<'doughnut'> => {
